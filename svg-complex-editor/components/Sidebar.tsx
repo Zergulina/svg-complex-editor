@@ -291,7 +291,7 @@ const Sidebar = ({
       data-sidebar
       className={cn(
         "h-full bg-background border-r flex flex-col transition-all duration-300 overflow-hidden",
-        state.collapsed ? "w-14" : "w-72" // Increased from w-64 to w-72 for better content display without horizontal scroll
+        state.collapsed ? "w-14" : "w-78" // Increased from w-64 to w-72 for better content display without horizontal scroll
       )}
       role="region"
       aria-label="Components sidebar"
@@ -323,31 +323,7 @@ const Sidebar = ({
       </div>
 
       {!state.collapsed && (
-        <div className="flex-1 overflow-auto p-2.5">
-          {/* Search Bar */}
-          <div className="mb-3">
-            <div className="relative">
-              <Search 
-                className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" 
-                aria-hidden="true"
-              />
-              <input
-                id="components-search"
-                type="text"
-                placeholder="Search components..."
-                aria-label="Search components"
-                className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }}
-              />
-            </div>
-          </div>
-
+        <div className="flex-1 overflow-auto p-2.5 flex flex-col">
           {/* Tabs */}
           <div 
             className="flex space-x-1 mb-3"
@@ -394,7 +370,7 @@ const Sidebar = ({
 
           {/* Components Content */}
           <div 
-            className="space-y-3"
+            className="space-y-3 flex-1"
             role="tabpanel"
             id={`${state.activeTab}-panel`}
             aria-labelledby={`${state.activeTab}-tab`}

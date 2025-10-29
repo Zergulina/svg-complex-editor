@@ -62,30 +62,17 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
     }
   };
 
-  const handleImagePropertyChange = (id: string, property: keyof BackgroundImage, value: any) => {
-    setImages(images.map(img => 
-      img.id === id ? { ...img, [property]: value } : img
-    ));
-    
-    if (selectedImage === id) {
-      const updatedImage = images.find(img => img.id === id);
-      if (updatedImage) {
-        onSelect({ ...updatedImage, [property]: value });
-      }
-    }
-  };
-
   const selectedImg = images.find(img => img.id === selectedImage);
 
   return (
-    <Card role="region" aria-labelledby="bg-image-component-title">
+    <Card role="region" aria-labelledby="bg-image-component-title" className="gap-0 p-2 h-full flex flex-col">
       <CardHeader className="p-2 pb-1" id="bg-image-component-title">
         <CardTitle className="text-sm flex items-center gap-2">
           <ImageIcon className="h-4 w-4" />
-          Background Images
+          Изображения
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-2 space-y-3">
+      <CardContent className="p-2 space-y-3 h-full flex flex-col">
         {/* Upload Button */}
         <Button 
           variant="outline" 
@@ -94,7 +81,7 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
           aria-label="Upload background image"
         >
           <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
-          Upload Background Image
+          Загрузить изображения
         </Button>
         <Input
           type="file"
@@ -107,18 +94,18 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
         />
 
         {/* Image List */}
-        <div>
-          <Label htmlFor="bg-image-list" className="text-xs">Uploaded Images</Label>
+        <div className="flex-1 flex flex-col">
+          <Label htmlFor="bg-image-list" className="text-xs">Загруженные изображеня</Label>
           <ScrollArea 
             id="bg-image-list"
-            className="h-24 mt-1 border rounded-md"
+            className="h-24 mt-1 border rounded-md flex-1"
             aria-label="List of uploaded background images"
           >
-            <div className="p-2">
+            <div className="p-2 h-full">
               {images.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">No images uploaded</p>
+                <p className="text-xs text-muted-foreground text-center py-2">Изображения не загружены</p>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 h-full">
                   {images.map((img) => (
                     <div 
                       key={img.id} 
@@ -170,55 +157,6 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
             </div>
           </ScrollArea>
         </div>
-
-        {/* Image Properties */}
-        {selectedImg && (
-          <div className="space-y-3" role="group" aria-labelledby="image-properties-title">
-            <Label id="image-properties-title" className="text-xs">Properties for: {selectedImg.name}</Label>
-            
-            <div>
-              <Label htmlFor="scale-slider" className="text-xs">Scale: {Math.round(selectedImg.scale * 100)}%</Label>
-              <Slider
-                id="scale-slider"
-                min={0.1}
-                max={3}
-                step={0.01}
-                value={[selectedImg.scale]}
-                onValueChange={(value) => handleImagePropertyChange(selectedImg.id, 'scale', value[0])}
-                className="mt-1"
-                aria-valuetext={`Scale: ${Math.round(selectedImg.scale * 100)}%`}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="rotation-slider" className="text-xs">Rotation: {selectedImg.rotation}°</Label>
-              <Slider
-                id="rotation-slider"
-                min={0}
-                max={360}
-                step={1}
-                value={[selectedImg.rotation]}
-                onValueChange={(value) => handleImagePropertyChange(selectedImg.id, 'rotation', value[0])}
-                className="mt-1"
-                aria-valuetext={`Rotation: ${selectedImg.rotation} degrees`}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="opacity-slider" className="text-xs">Opacity: {Math.round(selectedImg.opacity * 100)}%</Label>
-              <Slider
-                id="opacity-slider"
-                min={0}
-                max={1}
-                step={0.01}
-                value={[selectedImg.opacity]}
-                onValueChange={(value) => handleImagePropertyChange(selectedImg.id, 'opacity', value[0])}
-                className="mt-1"
-                aria-valuetext={`Opacity: ${Math.round(selectedImg.opacity * 100)}%`}
-              />
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

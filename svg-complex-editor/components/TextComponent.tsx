@@ -14,14 +14,12 @@ interface TextComponentProps {
 }
 
 const TextComponent = ({ onSelect }: TextComponentProps) => {
-  const [textSize, setTextSize] = useState(16);
   const [textFont, setTextFont] = useState('Arial');
-  const [textContent, setTextContent] = useState('Sample Text');
+  const [textContent, setTextContent] = useState('Название зоны');
   const [textColor, setTextColor] = useState('#000000');
 
   const handlePropertyChange = () => {
     onSelect({
-      size: textSize,
       font: textFont,
       content: textContent,
       color: textColor
@@ -29,7 +27,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
   };
 
   return (
-    <Card role="region" aria-labelledby="text-component-title">
+    <Card role="region" aria-labelledby="text-component-title" className="gap-0 p-2">
       <CardHeader className="p-2 pb-1" id="text-component-title">
         <CardTitle className="text-sm flex items-center gap-2">
           <Type className="h-4 w-4" />
@@ -41,7 +39,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
         <div className="p-2 bg-muted rounded-md text-center" aria-label="Text preview">
           <p 
             style={{ 
-              fontSize: `${textSize}px`, 
+              fontSize: `16px`, 
               fontFamily: textFont,
               color: textColor
             }}
@@ -54,37 +52,21 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
 
         {/* Text Content */}
         <div>
-          <Label htmlFor="text-content-input" className="text-xs">Text Content</Label>
+          <Label htmlFor="text-content-input" className="text-xs">Текст</Label>
           <Input
             id="text-content-input"
             value={textContent}
             onChange={(e) => setTextContent(e.target.value)}
-            className="text-xs mt-1"
+            className="text-xs mt-1 h-8"
             placeholder="Enter text"
             onInput={handlePropertyChange}
             aria-label="Text content input"
           />
         </div>
 
-        {/* Text Size */}
-        <div>
-          <Label htmlFor="text-size-slider" className="text-xs">Font Size: {textSize}px</Label>
-          <Slider
-            id="text-size-slider"
-            min={8}
-            max={72}
-            step={1}
-            value={[textSize]}
-            onValueChange={(value) => setTextSize(value[0])}
-            onValueCommit={handlePropertyChange}
-            className="mt-1.5"
-            aria-valuetext={`Font size: ${textSize}px`}
-          />
-        </div>
-
         {/* Font Family */}
         <div>
-          <Label className="text-xs">Font Family</Label>
+          <Label htmlFor="text-font-family-select" className="text-xs">Шрифт</Label>
           <Select 
             value={textFont} 
             onValueChange={(value) => {
@@ -92,7 +74,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
               handlePropertyChange();
             }}
           >
-            <SelectTrigger className="w-full h-7 text-xs" aria-label="Font family selection">
+            <SelectTrigger className="w-full h-8 text-xs select-none mt-[4px]" aria-label="Выбор шрифта" id="text-font-family-select">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -108,7 +90,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
 
         {/* Text Color */}
         <div>
-          <Label htmlFor="text-color-input" className="text-xs">Text Color</Label>
+          <Label htmlFor="text-color-input" className="text-xs">Цвет текста</Label>
           <div className="flex items-center gap-2 mt-1">
             <Input
               type="color"
@@ -118,7 +100,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
                 setTextColor(e.target.value);
                 handlePropertyChange();
               }}
-              className="w-16 h-7 p-1"
+              className="w-16 h-8 p-1"
               aria-label="Text color picker"
             />
             <Input
@@ -127,7 +109,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
                 setTextColor(e.target.value);
                 handlePropertyChange();
               }}
-              className="text-xs flex-1"
+              className="text-xs flex-1 h-8"
               placeholder="#000000"
               aria-label="Text color hex value"
             />
