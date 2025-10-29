@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+#работа #нцму #фитосветильники
 
-## Getting Started
+## Примитивы
 
-First, run the development server:
+- Стена - полигон с возможностью экструдирования при редактировании. По сути - path с переменной шириной. Один сегмент - минимум треугольник. (возможно стоит сделать каждый сегмент отдельным полигоном, на при этом в одной стене такие полигоны склеены - примыкающие к другому полигону вершины могут находиться только на ребре этого полигона)
+- Зона - полигон с возможностью добавления или уменьшения количества полигонов. Минимум - треугольник. Или эллипс. На него добавляется текст, разные иконки. Должна находиться внутри стен, зоны не должны пересекаться. Есть иконка культуры и еще дополнительные иконки
+- Текст - для общих пометок (названия помещения).
+- Иконки - для обозначения овощей и разных UI (аварий, варнингов).
+- UI-элемент, возникающих при наведении на зоны и некоторые иконки
+- Background image - изображение - можно менять масштаб, положение, накладывать их друг на друга, чтобы совмещать большие изображения - сделать отдельный редактор для задников
+## Холст
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Бесконечный. Есть сетка, носящая вспомогательный характер - перемещение по ней объектов через встроенный функционал SVG.js. 
+## Панель инструментов
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Отмена действия/возвращение вперед (надо реализовать паттерн команда с отменой действий)
+2. Сохранение в файл
+3. Новый холст
+4. Загрузка из файла
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Рисование схемы комплекса
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Используемые примитивы:
+- Стена
+- Текст
 
-## Learn More
+1) Пользователь загружает изображения в отрисовщик СВГ
+2) Подгоняет их расположение относительно друг друга
+3) Размещает первый сегмент стены
+4) Экструдит ее и подгоняет ширину под изображение
+5) Если нужно, замыкает
+6) Если не работа над схемой не закончена, переходит к 3 этапу
+7) Пользователь может удалять стену целиком или один ее сегмент, превращая одну стену в два объекта. При этом подсветятся зоны, которые находятся вне стен. Сохранить будет возможно, но при использовании схемы будет предупреждение, что с ней все не ок, нужно доработать (состояние ок не ок нужно сохранять, чтобы не перерасчитывать положение зон внутри стен во время использования схемы)
+## Размещение новой зоны
 
-To learn more about Next.js, take a look at the following resources:
+1) Пользователь выбирает фигуру для зоны - эллипс или полигон (вбивает целое число - по числу граней - от 3 до 100)
+2) Пользователь размещает зону ВНУТРИ стен, не пересекаясь с другими зонами
+3) У зоны можно изменить текст подписи и иконку, обозначающую культуру
+## Копирование существующей зоны
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1) Пользователь кликает на размещенную зону
+2) На появившемся UI-интерфейсе нажимает на кнопку копирования
+3) Копия прилипает к мышке
+4) Размещается внутри стен, не пересекаясь с другой зоной
