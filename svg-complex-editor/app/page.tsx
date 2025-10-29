@@ -1,6 +1,8 @@
 "use client";
 
 import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
+import { SidebarProvider, useSidebar } from "@/components/SidebarContext";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +22,18 @@ interface ToolbarState {
   hasUnsavedChanges: boolean;
 }
 
-export default function HomePage() {
+// Component item interface
+interface ComponentItem {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  icon?: string;
+  properties?: Record<string, any>;
+}
+
+const HomePageContent = () => {
+  const { state, dispatch } = useSidebar();
   const [content, setContent] = useState("Welcome to SVG Complex Editor");
   const [toolbarState, setToolbarState] = useState<ToolbarState>({
     canUndo: true,
@@ -82,6 +95,23 @@ export default function HomePage() {
     } else {
       handleNewCanvas();
     }
+  };
+
+  // Sidebar handlers
+  const handleToggleCollapse = () => {
+    dispatch({ type: 'TOGGLE_COLLAPSE' });
+  };
+
+  const handleTabChange = (tab: 'primitives' | 'backgrounds' | 'zones' | 'icons') => {
+    dispatch({ type: 'SET_ACTIVE_TAB', payload: tab });
+  };
+
+  const handleComponentSelect = (component: ComponentItem) => {
+    console.log("Component selected:", component);
+    dispatch({ type: 'SET_SELECTED_TOOL', payload: component.id });
+    // Here we would notify the canvas of the new tool selection
+    // For now, just show a toast
+    toast.success(`${component.name} selected!`);
   };
 
   return (
@@ -205,13 +235,36 @@ export default function HomePage() {
         />
       </div>
       
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto p-4">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold mb-4">{content}</h1>
-          <p>Use the toolbar above to manage your canvas.</p>
-        </div>
-      </main>
+      {/* Main Content Area with Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar 
+          state={state} 
+          onToggleCollapse={handleToggleCollapse}
+          onTabChange={handleTabChange}
+          onComponentSelect={handleComponentSelect}
+        />
+        
+        {/* Canvas Area */}
+        <main className="flex-1 overflow-auto p-4 bg-muted">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-2xl font-bold mb-4">{content}</h1>
+            <p>Use the sidebar to select components to add to your canvas.</p>
+            {state.selectedTool && (
+              <div className="mt-4 p-3 bg-background rounded-md border">
+                <p className="text-sm"><span className="font-medium">Selected Tool:</span> {state.selectedTool}</p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
+  );
+};
+
+export default function HomePage() {
+  return (
+    <SidebarProvider>
+      <HomePageContent />
+    </SidebarProvider>
   );
 }

@@ -1,0 +1,437 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  PanelLeft, 
+  PanelRight, 
+  Square, 
+  Circle, 
+  Type, 
+  Image as ImageIcon, 
+  Palette,
+  Plus,
+  Search,
+  ChevronsUpDown
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import WallComponent from "./WallComponent";
+import ZoneComponent from "./ZoneComponent";
+import TextComponent from "./TextComponent";
+import IconComponent from "./IconComponent";
+import BackgroundImageComponent from "./BackgroundImageComponent";
+
+interface ComponentItem {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  icon?: string;
+  properties?: Record<string, any>;
+}
+
+interface SidebarState {
+  collapsed: boolean;
+  activeTab: 'primitives' | 'backgrounds' | 'zones' | 'icons';
+  selectedTool: string | null;
+  componentItems: ComponentItem[];
+}
+
+interface SidebarProps {
+  state: SidebarState;
+  onToggleCollapse: () => void;
+  onTabChange: (tab: 'primitives' | 'backgrounds' | 'zones' | 'icons') => void;
+  onComponentSelect: (component: ComponentItem) => void;
+}
+
+const Sidebar = ({ 
+  state, 
+  onToggleCollapse, 
+  onTabChange,
+  onComponentSelect 
+}: SidebarProps) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Sample component data based on the plan
+  const componentData = {
+    primitives: {
+      walls: [
+        {
+          id: 'wall-line',
+          type: 'wall',
+          name: 'Wall (Line)',
+          description: 'Create a straight wall with variable width',
+          icon: 'square',
+          properties: { width: 10, length: 100 }
+        },
+        {
+          id: 'wall-curve',
+          type: 'wall',
+          name: 'Wall (Curve)',
+          description: 'Create a curved wall with variable width',
+          icon: 'circle',
+          properties: { width: 10, radius: 50 }
+        }
+      ],
+      zones: [
+        {
+          id: 'zone-polygon',
+          type: 'zone',
+          name: 'Zone (Polygon)',
+          description: 'Create a polygonal zone with text and icon support',
+          icon: 'square',
+          properties: { sides: 4, text: 'Zone' }
+        },
+        {
+          id: 'zone-ellipse',
+          type: 'zone',
+          name: 'Zone (Ellipse)',
+          description: 'Create an elliptical zone with text and icon support',
+          icon: 'circle',
+          properties: { text: 'Zone' }
+        }
+      ],
+      texts: [
+        {
+          id: 'text-basic',
+          type: 'text',
+          name: 'Text',
+          description: 'Add text annotation to the canvas',
+          icon: 'type',
+          properties: { content: 'Sample text', size: 14 }
+        }
+      ]
+    },
+    icons: [
+      {
+        id: 'icon-vegetables',
+        type: 'icon',
+        name: 'Vegetables',
+        description: 'Collection of vegetable icons',
+        properties: { category: 'vegetables' }
+      },
+      {
+        id: 'icon-warnings',
+        type: 'icon',
+        name: 'Warnings',
+        description: 'Collection of warning icons',
+        properties: { category: 'warnings' }
+      },
+      {
+        id: 'icon-alerts',
+        type: 'icon',
+        name: 'Alerts',
+        description: 'Collection of alert icons',
+        properties: { category: 'alerts' }
+      },
+      {
+        id: 'icon-culture',
+        type: 'icon',
+        name: 'Culture',
+        description: 'Collection of culture indicators',
+        properties: { category: 'culture' }
+      }
+    ],
+    backgrounds: [
+      {
+        id: 'bg-upload',
+        type: 'background',
+        name: 'Upload Image',
+        description: 'Upload a background image',
+        icon: 'image',
+        properties: {}
+      }
+    ]
+  };
+
+  // Filter components based on search term
+  const filteredComponents = {
+    primitives: {
+      walls: componentData.primitives.walls.filter(item => 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+      zones: componentData.primitives.zones.filter(item => 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+      texts: componentData.primitives.texts.filter(item => 
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    },
+    icons: componentData.icons.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+    backgrounds: componentData.backgrounds.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  };
+
+  // Function to render component icon based on type
+  const renderComponentIcon = (iconType?: string) => {
+    switch (iconType) {
+      case 'square':
+        return <Square className="h-5 w-5" />;
+      case 'circle':
+        return <Circle className="h-5 w-5" />;
+      case 'type':
+        return <Type className="h-5 w-5" />;
+      case 'image':
+        return <ImageIcon className="h-5 w-5" />;
+      default:
+        return <Palette className="h-5 w-5" />;
+    }
+  };
+
+  // Handle selection of different components
+  const handleWallSelect = (type: string, properties: any) => {
+    const componentType = type === 'line' ? 'wall-line' : 'wall-curve';
+    const component = componentData.primitives.walls.find(w => w.id === componentType);
+    if (component) {
+      const updatedComponent = {
+        ...component,
+        properties: { ...component.properties, ...properties }
+      };
+      setSelectedComponent(componentType);
+      onComponentSelect(updatedComponent);
+    }
+  };
+
+  const handleZoneSelect = (type: string, properties: any) => {
+    const componentType = type === 'polygon' ? 'zone-polygon' : 'zone-ellipse';
+    const component = componentData.primitives.zones.find(z => z.id === componentType);
+    if (component) {
+      const updatedComponent = {
+        ...component,
+        properties: { ...component.properties, ...properties }
+      };
+      setSelectedComponent(componentType);
+      onComponentSelect(updatedComponent);
+    }
+  };
+
+  const handleTextSelect = (properties: any) => {
+    const component = componentData.primitives.texts[0]; // Text component
+    if (component) {
+      const updatedComponent = {
+        ...component,
+        properties: { ...component.properties, ...properties }
+      };
+      setSelectedComponent('text-basic');
+      onComponentSelect(updatedComponent);
+    }
+  };
+
+  const handleIconSelect = (icon: any) => {
+    const component = componentData.icons.find(i => i.properties?.category === icon.category);
+    if (component) {
+      const updatedComponent = {
+        ...component,
+        properties: { ...component.properties, ...icon }
+      };
+      setSelectedComponent('icon-' + icon.category);
+      onComponentSelect(updatedComponent);
+    }
+  };
+
+  const handleBackgroundSelect = (properties: any) => {
+    const component = componentData.backgrounds[0]; // Background component
+    if (component) {
+      const updatedComponent = {
+        ...component,
+        properties: { ...properties }
+      };
+      setSelectedComponent('bg-upload');
+      onComponentSelect(updatedComponent);
+    }
+  };
+
+  // Keyboard navigation within the sidebar
+  useEffect(() => {
+    if (state.collapsed) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Focus management for accessibility
+      if (e.key === 'Tab') {
+        // When tabbing away from sidebar, we need to handle focus properly
+        if (document.activeElement?.closest('[data-sidebar]') !== sidebarRef.current) {
+          // If focus is moving away and sidebar is expanded, we might want to handle this specially
+        }
+      }
+
+      // Navigation shortcuts for the sidebar
+      if (e.altKey) {
+        switch (e.key) {
+          case '1':
+            e.preventDefault();
+            onTabChange('primitives');
+            break;
+          case '2':
+            e.preventDefault();
+            onTabChange('icons');
+            break;
+          case '3':
+            e.preventDefault();
+            onTabChange('backgrounds');
+            break;
+          case 'c':
+            e.preventDefault();
+            document.querySelector<HTMLInputElement>('input[placeholder="Search components..."]')?.focus();
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [state.collapsed, onTabChange]);
+
+  return (
+    <div 
+      ref={sidebarRef}
+      data-sidebar
+      className={cn(
+        "h-full bg-background border-r flex flex-col transition-all duration-300",
+        state.collapsed ? "w-14" : "w-64"
+      )}
+      role="region"
+      aria-label="Components sidebar"
+      tabIndex={-1}
+    >
+      {/* Sidebar Header */}
+      <div className="flex items-center justify-between p-3 border-b">
+        {!state.collapsed && (
+          <h2 
+            className="text-lg font-semibold"
+            id="sidebar-title"
+          >
+            Components
+          </h2>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleCollapse}
+          aria-label={state.collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!state.collapsed}
+        >
+          {state.collapsed ? 
+            <PanelRight className="h-5 w-5" aria-hidden="true" /> : 
+            <PanelLeft className="h-5 w-5" aria-hidden="true" />
+          }
+        </Button>
+      </div>
+
+      {!state.collapsed && (
+        <div className="flex-1 overflow-auto p-3">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search 
+                className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" 
+                aria-hidden="true"
+              />
+              <input
+                id="components-search"
+                type="text"
+                placeholder="Search components..."
+                aria-label="Search components"
+                className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div 
+            className="flex space-x-1 mb-4"
+            role="tablist"
+            aria-label="Component categories"
+          >
+            <Button
+              variant={state.activeTab === 'primitives' ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => onTabChange('primitives')}
+              role="tab"
+              aria-selected={state.activeTab === 'primitives'}
+              aria-controls="primitives-panel"
+              id="primitives-tab"
+            >
+              Primitives
+            </Button>
+            <Button
+              variant={state.activeTab === 'icons' ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => onTabChange('icons')}
+              role="tab"
+              aria-selected={state.activeTab === 'icons'}
+              aria-controls="icons-panel"
+              id="icons-tab"
+            >
+              Icons
+            </Button>
+            <Button
+              variant={state.activeTab === 'backgrounds' ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => onTabChange('backgrounds')}
+              role="tab"
+              aria-selected={state.activeTab === 'backgrounds'}
+              aria-controls="backgrounds-panel"
+              id="backgrounds-tab"
+            >
+              Backgrounds
+            </Button>
+          </div>
+
+          {/* Components Content */}
+          <div 
+            className="space-y-4"
+            role="tabpanel"
+            id={`${state.activeTab}-panel`}
+            aria-labelledby={`${state.activeTab}-tab`}
+          >
+            {state.activeTab === 'primitives' && (
+              <>
+                {/* Walls Section */}
+                <WallComponent onSelect={handleWallSelect} />
+                
+                {/* Zones Section */}
+                <ZoneComponent onSelect={handleZoneSelect} />
+                
+                {/* Text Section */}
+                <TextComponent onSelect={handleTextSelect} />
+              </>
+            )}
+
+            {state.activeTab === 'icons' && (
+              <IconComponent onSelect={handleIconSelect} />
+            )}
+
+            {state.activeTab === 'backgrounds' && (
+              <BackgroundImageComponent onSelect={handleBackgroundSelect} />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Sidebar;
