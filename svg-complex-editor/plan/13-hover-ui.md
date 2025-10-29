@@ -1,7 +1,14 @@
-# Task 11: Add Hover UI Elements
+# Task 13: Add Hover UI Elements
 
 ## Objective
 Add hover UI elements for zones and some icons.
+
+## Primitives Overview
+- Wall: Polygon with variable width and extrusion capability
+- Zone: Polygon or ellipse with text and icon support, must be inside walls
+- Text: For general annotations and room names
+- Icon: For vegetables, warnings, alerts, and culture indicators
+- Background Image: Uploadable images that can be scaled and positioned
 
 ## Detailed Steps
 
@@ -42,9 +49,58 @@ Add hover UI elements for zones and some icons.
    - Consider adding keyboard-based access to hover functionality
    - Implement appropriate ARIA attributes for hover elements
 
+## Data Types
+```typescript
+interface HoverState {
+  elementId: string | null;
+  elementType: PrimitiveType | null;
+  showCopyButton: boolean;
+  showEditControls: boolean;
+  tooltipContent?: string;
+}
+
+interface HoverControl {
+  position: Position;
+  type: 'copy' | 'edit' | 'delete' | 'info';
+  elementId: string;
+  visible: boolean;
+}
+```
+
+## Algorithm
+1. For each canvas element:
+   - Add mouseenter event listener to show hover UI
+   - Add mouseleave event listener to hide hover UI
+2. On mouseenter:
+   - Update hover state with element details
+   - Calculate positions for hover controls
+   - Show appropriate hover UI elements (copy button, etc.)
+   - Highlight the hovered element visually
+3. On mouseleave:
+   - Hide hover UI elements
+   - Clear hover state
+   - Remove visual highlighting
+4. For hover control interactions:
+   - On copy button click:
+     * Create copy of the element
+     * Position copy slightly offset from original
+     * Create AddElementCommand for the copy
+   - On edit button click:
+     * Show properties panel for the element
+     * Enter editing mode for that element
+   - On delete button click:
+     * Create RemoveElementCommand
+     * Remove element from canvas
+5. For positioning:
+   - Calculate control positions relative to element bounds
+   - Adjust for canvas viewport transformations
+   - Prevent controls from appearing outside canvas bounds
+
 ## Acceptance Criteria
 - Hover UI appears when mouse enters zones and specified icons
 - Hover UI includes useful functionality (like copy button for zones)
 - Hover UI elements are positioned correctly and don't interfere with canvas interactions
 - Hover UI disappears when mouse leaves the element
 - Hover functionality works without performance issues
+- Hover controls are accessible and provide useful functionality
+- Hover UI works correctly with canvas transformations (zoom/pan)

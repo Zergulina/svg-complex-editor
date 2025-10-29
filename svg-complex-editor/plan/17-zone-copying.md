@@ -1,7 +1,14 @@
-# Task 16: Implement Zone Copying Functionality
+# Task 17: Implement Zone Copying Functionality
 
 ## Objective
 Implement zone copying functionality - click, copy button, placement.
+
+## Primitives Overview
+- Wall: Polygon with variable width and extrusion capability
+- Zone: Polygon or ellipse with text and icon support, must be inside walls
+- Text: For general annotations and room names
+- Icon: For vegetables, warnings, alerts, and culture indicators
+- Background Image: Uploadable images that can be scaled and positioned
 
 ## Detailed Steps
 
@@ -51,6 +58,55 @@ Implement zone copying functionality - click, copy button, placement.
    - Ensure the copy operation can be undone/redone
    - Properly integrate with existing command history
 
+## Data Types
+```typescript
+interface ZoneCopyState {
+  isCopying: boolean;
+  originalZoneId: string | null;
+  copiedZone: Zone | null;
+  previewPosition: Position | null;
+  validationResult: ZoneValidationResult | null;
+  isCancelled: boolean;
+}
+
+interface CopyZoneCommandPayload {
+  originalZone: Zone;
+  copiedZone: Zone;
+}
+```
+
+## Algorithm
+1. For zone selection:
+   - On mouse click on a zone, select it and show controls
+   - On hover, show copy button as part of hover UI
+2. For copy button click:
+   - Create a deep copy of the selected zone
+   - Offset the copy slightly from the original
+   - Enter copy mode with the copied zone attached to mouse
+   - Show ghost preview of the zone
+3. For copy movement:
+   - On mouse move, update ghost zone position
+   - Run validation at current mouse position
+   - Update visual feedback based on validation result
+   - Show zone preview in translucent style
+4. For placement validation:
+   - Continuously check if zone would be inside walls
+   - Check for intersection with existing zones
+   - Update preview styling (green for valid, red for invalid)
+5. For placement confirmation:
+   - On mouse click, if validation passes, place the zone
+   - Create AddElementCommand with the copied zone
+   - Add zone to canvas and update selection
+   - Exit copy mode
+6. For cancellation:
+   - On Escape key press, cancel copy operation
+   - Clear copied zone and exit copy mode
+   - Return to normal selection state
+7. For command integration:
+   - Create appropriate commands for copy operations
+   - Add to command history for undo/redo
+   - Ensure copied zones can be properly undone/redone
+
 ## Acceptance Criteria
 - Users can click on a zone and see a copy button
 - Clicking the copy button creates a copy that follows the mouse
@@ -58,3 +114,5 @@ Implement zone copying functionality - click, copy button, placement.
 - Zones are only placed in valid locations (inside walls, no intersection)
 - Copy operation can be cancelled with Escape key
 - Copy operation is added to undo/redo history
+- Copied zones preserve all original properties
+- Visual feedback clearly indicates valid/invalid placement areas

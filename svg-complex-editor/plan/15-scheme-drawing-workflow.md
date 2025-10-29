@@ -1,7 +1,14 @@
-# Task 14: Implement Complex Scheme Drawing Workflow
+# Task 15: Implement Complex Scheme Drawing Workflow
 
 ## Objective
 Implement complex scheme drawing workflow - image upload, wall creation with extrusion.
+
+## Primitives Overview
+- Wall: Polygon with variable width and extrusion capability
+- Zone: Polygon or ellipse with text and icon support, must be inside walls
+- Text: For general annotations and room names
+- Icon: For vegetables, warnings, alerts, and culture indicators
+- Background Image: Uploadable images that can be scaled and positioned
 
 ## Detailed Steps
 
@@ -51,6 +58,60 @@ Implement complex scheme drawing workflow - image upload, wall creation with ext
    - Show examples of proper usage
    - Add visual indicators for next steps in the process
 
+## Data Types
+```typescript
+interface DrawingWorkflowState {
+  currentStep: 'upload' | 'position' | 'wall-planning' | 'wall-creation' | 'modification';
+  selectedTool: 'select' | 'wall' | 'zone' | 'text' | 'icon' | 'background';
+  activeImageId: string | null;
+  activeWallId: string | null;
+  wallWidth: number;
+  temporaryElement: CanvasElement | null;
+}
+
+interface ComplexScheme {
+  id: string;
+  name: string;
+  backgroundImageIds: string[];
+  wallIds: string[];
+  zoneIds: string[];
+  textIds: string[];
+  iconIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+## Algorithm
+1. Initialize workflow in 'upload' state
+2. For image upload step:
+   - Show upload UI in toolbar/sidebar
+   - Process uploaded images and add to canvas as background
+   - Transition to 'position' state
+3. For image positioning step:
+   - Allow user to adjust position, scale, rotation of images
+   - Show alignment guides when positioning near other images
+   - Transition to 'wall-planning' when ready
+4. For wall creation step:
+   - Switch to wall tool
+   - Wait for first click to start wall
+   - On subsequent clicks/drag, create wall segments
+   - Show real-time preview of wall as it's being created
+   - On double-click or Enter, finalize wall creation
+5. For wall extrusion:
+   - Show extrusion handles on selected wall
+   - On dragging handle, extend wall in that direction
+   - Create new segments as needed
+   - Maintain proper connections between segments
+6. For wall validation:
+   - Continuously check for wall intersections during creation
+   - Show warnings for invalid configurations
+   - Prevent creation of invalid walls
+7. For workflow state management:
+   - Track current step in the workflow
+   - Show appropriate UI based on current step
+   - Enable/disable tools based on current workflow state
+
 ## Acceptance Criteria
 - Users can upload reference images and adjust their position
 - Users can create walls by drawing initial segments
@@ -59,3 +120,5 @@ Implement complex scheme drawing workflow - image upload, wall creation with ext
 - Walls can be closed to form complete structures
 - Real-time validation prevents invalid wall configurations
 - Complete workflow supports complex scheme creation
+- Workflow steps are clearly guided and intuitive
+- All workflow operations are integrated with command pattern
