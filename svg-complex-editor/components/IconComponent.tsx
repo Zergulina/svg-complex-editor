@@ -73,23 +73,23 @@ const IconComponent = ({ onSelect }: IconComponentProps) => {
 
   return (
     <Card role="region" aria-labelledby="icon-component-title">
-      <CardHeader className="p-3" id="icon-component-title">
+      <CardHeader className="p-2 pb-1" id="icon-component-title">
         <CardTitle className="text-sm flex items-center gap-2">
           <Palette className="h-4 w-4" />
           Icons
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3 space-y-3">
+      <CardContent className="p-2 space-y-3">
         {/* Search Bar */}
         <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <Search className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <Input
             id="icon-search"
             type="text"
             placeholder="Search icons..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 text-xs"
+            className="pl-8 text-xs h-8"
             aria-label="Search icons"
           />
         </div>
@@ -105,7 +105,7 @@ const IconComponent = ({ onSelect }: IconComponentProps) => {
               key={category.id}
               variant={activeCategory === category.id ? 'secondary' : 'outline'}
               size="sm"
-              className="text-xs h-7"
+              className="text-xs h-7 flex-shrink-0 min-w-[70px] justify-center"
               onClick={() => setActiveCategory(category.id)}
               role="tab"
               aria-selected={activeCategory === category.id}
@@ -119,7 +119,7 @@ const IconComponent = ({ onSelect }: IconComponentProps) => {
 
         {/* Icons Grid */}
         <ScrollArea 
-          className="h-48"
+          className="h-40"
           role="tabpanel"
           id={`panel-${activeCategory}`}
           aria-labelledby={`tab-${activeCategory}`}
@@ -130,14 +130,14 @@ const IconComponent = ({ onSelect }: IconComponentProps) => {
                 key={icon.id}
                 variant="outline"
                 size="sm"
-                className="h-16 flex flex-col items-center justify-center gap-1 p-2"
+                className="h-14 flex flex-col items-center justify-center gap-1 p-1"
                 onClick={() => onSelect({ ...icon, category: activeCategory })}
                 aria-label={icon.name}
               >
-                <div className="flex items-center justify-center h-6 w-6" aria-hidden="true">
+                <div className="flex items-center justify-center h-5 w-5" aria-hidden="true">
                   {icon.component}
                 </div>
-                <span className="text-xs mt-1 truncate w-full">{icon.name}</span>
+                <span className="text-[11px] mt-0.5 truncate w-full">{icon.name}</span>
               </Button>
             ))}
           </div>

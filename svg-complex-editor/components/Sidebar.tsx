@@ -62,20 +62,12 @@ const Sidebar = ({
     primitives: {
       walls: [
         {
-          id: 'wall-line',
+          id: 'wall',
           type: 'wall',
-          name: 'Wall (Line)',
-          description: 'Create a straight wall with variable width',
-          icon: 'square',
+          name: 'Wall',
+          description: 'Create a wall with variable width',
+          icon: 'brick-wall',
           properties: { width: 10, length: 100 }
-        },
-        {
-          id: 'wall-curve',
-          type: 'wall',
-          name: 'Wall (Curve)',
-          description: 'Create a curved wall with variable width',
-          icon: 'circle',
-          properties: { width: 10, radius: 50 }
         }
       ],
       zones: [
@@ -192,15 +184,14 @@ const Sidebar = ({
   };
 
   // Handle selection of different components
-  const handleWallSelect = (type: string, properties: any) => {
-    const componentType = type === 'line' ? 'wall-line' : 'wall-curve';
-    const component = componentData.primitives.walls.find(w => w.id === componentType);
+  const handleWallSelect = ( properties: any) => {
+    
+    const component = componentData.primitives.walls.find(w => w.id === "wall");
     if (component) {
       const updatedComponent = {
         ...component,
         properties: { ...component.properties, ...properties }
       };
-      setSelectedComponent(componentType);
       onComponentSelect(updatedComponent);
     }
   };
@@ -299,26 +290,27 @@ const Sidebar = ({
       ref={sidebarRef}
       data-sidebar
       className={cn(
-        "h-full bg-background border-r flex flex-col transition-all duration-300",
-        state.collapsed ? "w-14" : "w-64"
+        "h-full bg-background border-r flex flex-col transition-all duration-300 overflow-hidden",
+        state.collapsed ? "w-14" : "w-72" // Increased from w-64 to w-72 for better content display without horizontal scroll
       )}
       role="region"
       aria-label="Components sidebar"
       tabIndex={-1}
     >
       {/* Sidebar Header */}
-      <div className="flex items-center justify-between p-3 border-b">
+      <div className="flex items-center justify-between h-12 px-3 border-b">
         {!state.collapsed && (
           <h2 
             className="text-lg font-semibold"
             id="sidebar-title"
           >
-            Components
+            Компоненты
           </h2>
         )}
         <Button
           variant="ghost"
           size="icon"
+          className="h-8 w-8"
           onClick={onToggleCollapse}
           aria-label={state.collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!state.collapsed}
@@ -331,9 +323,9 @@ const Sidebar = ({
       </div>
 
       {!state.collapsed && (
-        <div className="flex-1 overflow-auto p-3">
+        <div className="flex-1 overflow-auto p-2.5">
           {/* Search Bar */}
-          <div className="mb-4">
+          <div className="mb-3">
             <div className="relative">
               <Search 
                 className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" 
@@ -358,64 +350,61 @@ const Sidebar = ({
 
           {/* Tabs */}
           <div 
-            className="flex space-x-1 mb-4"
+            className="flex space-x-1 mb-3"
             role="tablist"
             aria-label="Component categories"
           >
             <Button
               variant={state.activeTab === 'primitives' ? 'default' : 'outline'}
               size="sm"
-              className="flex-1 text-xs"
+              className="flex-1 text-xs flex-shrink-0"
               onClick={() => onTabChange('primitives')}
               role="tab"
               aria-selected={state.activeTab === 'primitives'}
               aria-controls="primitives-panel"
               id="primitives-tab"
             >
-              Primitives
+              Примитивы
             </Button>
             <Button
               variant={state.activeTab === 'icons' ? 'default' : 'outline'}
               size="sm"
-              className="flex-1 text-xs"
+              className="flex-1 text-xs flex-shrink-0"
               onClick={() => onTabChange('icons')}
               role="tab"
               aria-selected={state.activeTab === 'icons'}
               aria-controls="icons-panel"
               id="icons-tab"
             >
-              Icons
+              Иконки
             </Button>
             <Button
               variant={state.activeTab === 'backgrounds' ? 'default' : 'outline'}
               size="sm"
-              className="flex-1 text-xs"
+              className="flex-1 text-xs flex-shrink-0"
               onClick={() => onTabChange('backgrounds')}
               role="tab"
               aria-selected={state.activeTab === 'backgrounds'}
               aria-controls="backgrounds-panel"
               id="backgrounds-tab"
             >
-              Backgrounds
+              Изображения
             </Button>
           </div>
 
           {/* Components Content */}
           <div 
-            className="space-y-4"
+            className="space-y-3"
             role="tabpanel"
             id={`${state.activeTab}-panel`}
             aria-labelledby={`${state.activeTab}-tab`}
           >
             {state.activeTab === 'primitives' && (
               <>
-                {/* Walls Section */}
                 <WallComponent onSelect={handleWallSelect} />
                 
-                {/* Zones Section */}
                 <ZoneComponent onSelect={handleZoneSelect} />
                 
-                {/* Text Section */}
                 <TextComponent onSelect={handleTextSelect} />
               </>
             )}

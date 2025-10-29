@@ -20,8 +20,6 @@ const ZoneComponent = ({ onSelect }: ZoneComponentProps) => {
   const [zoneType, setZoneType] = useState<'polygon' | 'ellipse'>('polygon');
   const [sides, setSides] = useState(4);
   const [zoneText, setZoneText] = useState('Zone');
-  const [zoneWidth, setZoneWidth] = useState(100);
-  const [zoneHeight, setZoneHeight] = useState(100);
 
   const handleZoneTypeSelect = (type: 'polygon' | 'ellipse') => {
     setZoneType(type);
@@ -29,8 +27,6 @@ const ZoneComponent = ({ onSelect }: ZoneComponentProps) => {
       type,
       sides: type === 'polygon' ? sides : undefined,
       text: zoneText,
-      width: zoneWidth,
-      height: zoneHeight
     });
   };
 
@@ -39,23 +35,21 @@ const ZoneComponent = ({ onSelect }: ZoneComponentProps) => {
       type: zoneType,
       sides: zoneType === 'polygon' ? sides : undefined,
       text: zoneText,
-      width: zoneWidth,
-      height: zoneHeight
     });
   };
 
   return (
-    <Card role="region" aria-labelledby="zone-component-title">
-      <CardHeader className="p-3" id="zone-component-title">
+    <Card role="region" aria-labelledby="zone-component-title" className="gap-0 p-2">
+      <CardHeader className="p-2 pb-1" id="zone-component-title">
         <CardTitle className="text-sm flex items-center gap-2">
           <Square className="h-4 w-4" />
-          Zones
+          Зоны
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3 space-y-4">
+      <CardContent className="p-2 space-y-3">
         {/* Zone Type Selection */}
         <div>
-          <h4 className="text-xs font-medium mb-2">Zone Type</h4>
+          <h4 className="text-xs font-medium mb-1">Тип зоны</h4>
           <div 
             className="grid grid-cols-2 gap-2"
             role="radiogroup"
@@ -64,7 +58,7 @@ const ZoneComponent = ({ onSelect }: ZoneComponentProps) => {
             <Button
               variant={zoneType === 'polygon' ? 'secondary' : 'outline'}
               size="sm"
-              className="h-10"
+              className="h-9"
               onClick={() => handleZoneTypeSelect('polygon')}
               role="radio"
               aria-checked={zoneType === 'polygon'}
@@ -76,7 +70,7 @@ const ZoneComponent = ({ onSelect }: ZoneComponentProps) => {
             <Button
               variant={zoneType === 'ellipse' ? 'secondary' : 'outline'}
               size="sm"
-              className="h-10"
+              className="h-9"
               onClick={() => handleZoneTypeSelect('ellipse')}
               role="radio"
               aria-checked={zoneType === 'ellipse'}
@@ -99,44 +93,13 @@ const ZoneComponent = ({ onSelect }: ZoneComponentProps) => {
               step={1}
               value={[sides]}
               onValueChange={(value) => setSides(value[0])}
-              className="mt-2"
+              className="mt-1.5"
               onValueCommit={handlePropertyChange}
               aria-valuetext={`Number of sides: ${sides}`}
             />
           </div>
         )}
 
-        {/* Zone Size */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <Label htmlFor="zone-width-slider" className="text-xs">Width: {zoneWidth}px</Label>
-            <Slider
-              id="zone-width-slider"
-              min={10}
-              max={300}
-              step={5}
-              value={[zoneWidth]}
-              onValueChange={(value) => setZoneWidth(value[0])}
-              onValueCommit={handlePropertyChange}
-              className="mt-1"
-              aria-valuetext={`Width: ${zoneWidth}px`}
-            />
-          </div>
-          <div>
-            <Label htmlFor="zone-height-slider" className="text-xs">Height: {zoneHeight}px</Label>
-            <Slider
-              id="zone-height-slider"
-              min={10}
-              max={300}
-              step={5}
-              value={[zoneHeight]}
-              onValueChange={(value) => setZoneHeight(value[0])}
-              onValueCommit={handlePropertyChange}
-              className="mt-1"
-              aria-valuetext={`Height: ${zoneHeight}px`}
-            />
-          </div>
-        </div>
 
         {/* Zone Text */}
         <div>

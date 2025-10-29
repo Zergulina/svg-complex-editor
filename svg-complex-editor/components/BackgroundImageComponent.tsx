@@ -79,17 +79,17 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
 
   return (
     <Card role="region" aria-labelledby="bg-image-component-title">
-      <CardHeader className="p-3" id="bg-image-component-title">
+      <CardHeader className="p-2 pb-1" id="bg-image-component-title">
         <CardTitle className="text-sm flex items-center gap-2">
           <ImageIcon className="h-4 w-4" />
           Background Images
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3 space-y-4">
+      <CardContent className="p-2 space-y-3">
         {/* Upload Button */}
         <Button 
           variant="outline" 
-          className="w-full"
+          className="w-full h-8"
           onClick={() => fileInputRef.current?.click()}
           aria-label="Upload background image"
         >
@@ -111,18 +111,18 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
           <Label htmlFor="bg-image-list" className="text-xs">Uploaded Images</Label>
           <ScrollArea 
             id="bg-image-list"
-            className="h-32 mt-2 border rounded-md"
+            className="h-24 mt-1 border rounded-md"
             aria-label="List of uploaded background images"
           >
             <div className="p-2">
               {images.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No images uploaded</p>
+                <p className="text-xs text-muted-foreground text-center py-2">No images uploaded</p>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {images.map((img) => (
                     <div 
                       key={img.id} 
-                      className={`border rounded p-2 cursor-pointer flex flex-col items-center ${
+                      className={`border rounded p-1 cursor-pointer flex flex-col items-center ${
                         selectedImage === img.id ? 'border-primary bg-primary/10' : ''
                       }`}
                       onClick={() => {
@@ -140,7 +140,7 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
                       aria-label={`Select ${img.name}`}
                       aria-selected={selectedImage === img.id}
                     >
-                      <div className="w-16 h-16 flex items-center justify-center overflow-hidden">
+                      <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
                         <img 
                           src={img.url} 
                           alt={img.name} 
@@ -148,19 +148,19 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
                           aria-hidden="true"
                         />
                       </div>
-                      <span className="text-xs mt-1 truncate w-full">{img.name}</span>
-                      <div className="flex gap-1 mt-1">
+                      <span className="text-[10px] mt-0.5 truncate w-full">{img.name}</span>
+                      <div className="flex gap-1 mt-0.5">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-6 w-6 p-0"
+                          className="h-5 w-5 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRemoveImage(img.id);
                           }}
                           aria-label={`Remove ${img.name}`}
                         >
-                          <Trash2 className="h-3 w-3" aria-hidden="true" />
+                          <Trash2 className="h-2.5 w-2.5" aria-hidden="true" />
                         </Button>
                       </div>
                     </div>

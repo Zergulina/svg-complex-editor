@@ -30,22 +30,22 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
 
   return (
     <Card role="region" aria-labelledby="text-component-title">
-      <CardHeader className="p-3" id="text-component-title">
+      <CardHeader className="p-2 pb-1" id="text-component-title">
         <CardTitle className="text-sm flex items-center gap-2">
           <Type className="h-4 w-4" />
           Text
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3 space-y-4">
+      <CardContent className="p-2 space-y-3">
         {/* Text Preview */}
-        <div className="p-3 bg-muted rounded-md text-center" aria-label="Text preview">
+        <div className="p-2 bg-muted rounded-md text-center" aria-label="Text preview">
           <p 
             style={{ 
               fontSize: `${textSize}px`, 
               fontFamily: textFont,
               color: textColor
             }}
-            className="truncate"
+            className="truncate text-sm"
             aria-live="polite"
           >
             {textContent}
@@ -77,7 +77,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
             value={[textSize]}
             onValueChange={(value) => setTextSize(value[0])}
             onValueCommit={handlePropertyChange}
-            className="mt-1"
+            className="mt-1.5"
             aria-valuetext={`Font size: ${textSize}px`}
           />
         </div>
@@ -92,7 +92,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
               handlePropertyChange();
             }}
           >
-            <SelectTrigger className="w-full h-8 text-xs" aria-label="Font family selection">
+            <SelectTrigger className="w-full h-7 text-xs" aria-label="Font family selection">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -118,7 +118,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
                 setTextColor(e.target.value);
                 handlePropertyChange();
               }}
-              className="w-16 h-8 p-1"
+              className="w-16 h-7 p-1"
               aria-label="Text color picker"
             />
             <Input
