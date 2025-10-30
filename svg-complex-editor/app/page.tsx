@@ -265,7 +265,7 @@ const HomePageContent = () => {
                 // Update selection state if needed
               }}
               onCanvasChange={(state) => {
-                console.log("Canvas state changed:", state);
+                // console.log("Canvas state changed:", state);
                 // Handle canvas state changes if needed
               }}
               currentTool={state.selectedTool as any}

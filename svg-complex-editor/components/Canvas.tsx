@@ -54,6 +54,15 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     opacity: 0.5
   });
 
+  // Refs for drag and pan state to avoid closure issues
+  const isDraggingRef = useRef(false);
+  const isPanningRef = useRef(false);
+  const hasMouseMovedRef = useRef(false); // Track if mouse moved during press (to differentiate click vs drag)
+  const startPanXRef = useRef(0);
+  const startPanYRef = useRef(0);
+  const startMouseXRef = useRef(0);
+  const startMouseYRef = useRef(0);
+
   // Initialize SVG canvas
   useEffect(() => {
     if (containerRef.current && !svgRef.current) {
@@ -62,79 +71,38 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
 
       // Create a group for all canvas elements - this group will contain all the drawn elements
       const canvasGroup = draw.group().attr({ id: 'canvas-elements' });
-      
+
       // Create a group for the grid
       const gridGroup = draw.group().attr({ id: 'grid' });
-      
-      // Handle clicks on the canvas background to deselect elements
-      draw.on('click', (e: Event) => {
-        const event = e as MouseEvent;
-        // Deselect any selected element when clicking on canvas background
-        // Check if the click is on the SVG canvas itself (not on any child elements)
-        if ((event.target as SVGElement).nodeName === 'svg') {
-          setCanvasState(prev => ({ ...prev, selectedElementId: null }));
-          onSelectionChange(null);
-        }
-      });
-      
-      // Handle clicks specifically on elements to select them
-      draw.on('click', (e: Event) => {
-        const event = e as MouseEvent;
-        // Check if the clicked element or one of its ancestors has the 'element' class
-        let target = event.target as HTMLElement;
-        
-        // Traverse up the DOM tree to find an SVG element with the 'element' class
-        while (target && (target as Node).nodeName !== 'svg') {
-          if (target.classList && target.classList.contains('element') && target.id) {
-            event.stopPropagation(); // Prevent the click from bubbling to the canvas background
-            
-            const elementId = target.id;
-            
-            setCanvasState(prev => ({ ...prev, selectedElementId: elementId }));
-            onSelectionChange(elementId);
-            
-            // Highlight the selected element
-            highlightElement(elementId);
-            return;
-          }
-          target = target.parentElement as HTMLElement;
-        }
-      });
-      
+
       // Set initial viewbox to show a reasonable area
       draw.viewbox(0, 0, 800, 600);
 
       // Set up zoom and pan with enhanced drag functionality
-      let isDragging = false;
-      let isPanning = false;
-      let startPanX = 0;
-      let startPanY = 0;
-      let startMouseX = 0;
-      let startMouseY = 0;
 
       // Mouse wheel zoom
       const handleWheel = (e: WheelEvent) => {
         e.preventDefault();
-        
+
         const rect = draw.node.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        
+
         // Get current viewbox
         const viewBox = draw.viewbox();
         const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-        
+
         // Calculate new dimensions
         const newWidth = viewBox.width / zoomFactor;
         const newHeight = viewBox.height / zoomFactor;
-        
+
         // Calculate new position to zoom toward mouse
         const newViewX = viewBox.x + (mouseX / rect.width) * (viewBox.width - newWidth);
         const newViewY = viewBox.y + (mouseY / rect.height) * (viewBox.height - newHeight);
-        
+
         // Apply the new viewbox
         draw.viewbox(newViewX, newViewY, newWidth, newHeight);
-        
+
         // Update canvas state
         setCanvasState(prev => ({
           ...prev,
@@ -145,64 +113,119 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
 
       // Enhanced mouse down - handle both middle mouse button and left mouse button drag for panning
       const handleMouseDown = (e: MouseEvent) => {
+        hasMouseMovedRef.current = false; // Reset mouse movement tracker
+        startMouseXRef.current = e.clientX;
+        startMouseYRef.current = e.clientY;
+
         // Middle mouse button or space+left click for panning
         if (e.button === 1 || (e.button === 0 && e.getModifierState('Space'))) {
-          isPanning = true;
-          startMouseX = e.clientX;
-          startMouseY = e.clientY;
+          isPanningRef.current = true;
           const vb = draw.viewbox();
-          startPanX = vb.x;
-          startPanY = vb.y;
-          draw.node.style.cursor = 'grabbing';
+          startPanXRef.current = vb.x;
+          startPanYRef.current = vb.y;
           e.preventDefault();
         } else if (e.button === 0) {
           // Left mouse button - check if clicking on canvas background (not on elements) for drag panning
           if ((e.target as SVGElement).nodeName === 'svg' || e.target === containerRef.current) {
-            isDragging = true;
-            startMouseX = e.clientX;
-            startMouseY = e.clientY;
+            isDraggingRef.current = true;
             const vb = draw.viewbox();
-            startPanX = vb.x;
-            startPanY = vb.y;
-            draw.node.style.cursor = 'grabbing';
+            startPanXRef.current = vb.x;
+            startPanYRef.current = vb.y;
             e.preventDefault();
           }
         }
       };
 
       const handleMouseMove = (e: MouseEvent) => {
+        // Check if mouse has moved significantly (threshold of 5px) to determine if it's a drag vs click
+        if (!hasMouseMovedRef.current &&
+          (Math.abs(e.clientX - startMouseXRef.current) > 5 || Math.abs(e.clientY - startMouseYRef.current) > 5)) {
+          hasMouseMovedRef.current = true;
+        }
+
         // Handle panning with middle mouse or space+drag
-        if (isPanning || isDragging) {
+        if (isPanningRef.current || isDraggingRef.current) {
           const rect = draw.node.getBoundingClientRect();
-          const dx = (e.clientX - startMouseX) * (draw.viewbox().width / rect.width);
-          const dy = (e.clientY - startMouseY) * (draw.viewbox().height / rect.height);
-          
+          const dx = (e.clientX - startMouseXRef.current) * (draw.viewbox().width / rect.width);
+          const dy = (e.clientY - startMouseYRef.current) * (draw.viewbox().height / rect.height);
+
+          draw.node.style.cursor = 'grabbing';
+
           draw.viewbox(
-            startPanX - dx,
-            startPanY - dy,
+            startPanXRef.current - dx,
+            startPanYRef.current - dy,
             draw.viewbox().width,
             draw.viewbox().height
           );
-          
+
           // Update canvas state
           setCanvasState(prev => ({
             ...prev,
-            viewBox: { 
-              x: startPanX - dx, 
-              y: startPanY - dy, 
-              width: prev.viewBox.width, 
-              height: prev.viewBox.height 
+            viewBox: {
+              x: startPanXRef.current - dx,
+              y: startPanYRef.current - dy,
+              width: prev.viewBox.width,
+              height: prev.viewBox.height
             }
           }));
         }
       };
 
-      const handleMouseUp = () => {
-        if (isPanning || isDragging) {
-          isPanning = false;
-          isDragging = false;
-          draw.node.style.cursor = 'default';
+      const handleMouseUp = (e: MouseEvent) => {
+        if (isPanningRef.current || (hasMouseMovedRef.current && isDraggingRef.current)) {
+          console.log(`isPanning: ${isPanningRef.current}; isDragging: ${isDraggingRef.current}`);
+
+          // return;
+        } else if (!hasMouseMovedRef.current) {
+          // Handle both primitive placement and element selection when mouse hasn't moved significantly
+          const target = e.target as HTMLElement;
+
+          // Check if clicked on an existing primitive element
+          let clickedOnElement = false;
+          let currentTarget = target as HTMLElement;
+          let elementId: string | null = null;
+          console.log("bebebe");
+
+          // Traverse up the DOM tree to find an element with the 'element' class
+          while (currentTarget && currentTarget !== draw.node as Node) {
+            if (currentTarget.classList && currentTarget.classList.contains('element') && currentTarget.id) {
+              clickedOnElement = true;
+              elementId = currentTarget.id;
+              break;
+            }
+            currentTarget = currentTarget.parentElement as HTMLElement;
+          }
+
+          if (clickedOnElement && elementId) {
+            // Clicked on an existing element - select it
+            e.stopPropagation(); // Prevent the click from bubbling to the canvas background
+
+            setCanvasState(prev => ({ ...prev, selectedElementId: elementId }));
+            onSelectionChange(elementId);
+
+            // Highlight the selected element
+            highlightElement(elementId);
+          } else {
+            // Clicked on canvas background - place primitive if tool is active, otherwise deselect
+            if (target === draw.node as unknown as HTMLElement || draw.node.contains(target as Node)) {
+              // Mouse up was on canvas background without significant movement
+              const activeTool = currentToolRef.current;
+              console.log("aboba");
+              if (activeTool) {
+                // Place a primitive if a tool is active
+                placePrimitive(e, activeTool);
+              } else {
+                // Deselect any selected element when clicking on canvas background with no active tool
+                setCanvasState(prev => ({ ...prev, selectedElementId: null }));
+                onSelectionChange(null);
+              }
+            }
+          }
         }
+
+        isPanningRef.current = false;
+        draw.node.style.cursor = 'default';
+        isDraggingRef.current = false;
       };
 
       // Add event listeners
@@ -218,7 +241,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         mousemove: handleMouseMove,
         mouseup: handleMouseUp
       };
-      
+
       // Draw initial grid
       drawGrid(draw, gridGroup);
     }
@@ -233,7 +256,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           document.removeEventListener('mousemove', eventHandlers.mousemove);
           document.removeEventListener('mouseup', eventHandlers.mouseup);
         }
-        
+
         svgRef.current.clear();
       }
     };
@@ -255,152 +278,10 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     currentToolRef.current = currentTool;
   }, [currentTool]);
 
-  // Handle canvas click for placing primitives when a tool is active
+  // Update canvas state when it changes
   useEffect(() => {
-    if (!svgRef.current) return;
-
-    const canvasGroup = svgRef.current.findOne('#canvas-elements');
-    if (!canvasGroup) return;
-
-    // Function to handle canvas clicking for placing primitives
-    const handleCanvasClick = (e: Event) => {
-      const event = e as MouseEvent;
-      
-      // Only respond to clicks on the SVG background, not on existing elements
-      if ((event.target as SVGElement).nodeName === 'svg') {
-        // Only proceed if we have an active tool
-        const activeTool = currentToolRef.current;
-        if (!activeTool) return;
-
-        if (!svgRef.current) return;
-        
-        // Get canvas group to add elements to
-        const canvasGroup = svgRef.current.findOne('#canvas-elements');
-        if (!canvasGroup) return;
-        
-        // Get the click position in SVG coordinates
-        const svgElement = svgRef.current.node as unknown as SVGSVGElement;
-        const pt = svgElement.createSVGPoint();
-        pt.x = event.clientX;
-        pt.y = event.clientY;
-        const cursorPt = pt.matrixTransform(svgElement.getScreenCTM().inverse());
-        
-        // Create the appropriate primitive based on the current tool
-        let newElements: CanvasElement[] = [];
-        let newElement: any = null;
-        let elementType: PrimitiveType | 'icon-text' = activeTool;
-
-        switch (activeTool) {
-          case 'wall':
-            // Create placeholder for wall element (a polygon)
-            newElement = (canvasGroup as any).polygon([
-              [cursorPt.x - 40, cursorPt.y - 5],
-              [cursorPt.x + 40, cursorPt.y - 5], 
-              [cursorPt.x + 40, cursorPt.y + 5],
-              [cursorPt.x - 40, cursorPt.y + 5]
-            ]).fill('none').stroke({ width: 2, color: '#8B4513' }).addClass('element').attr({ id: `wall-${Date.now()}` });
-            
-            newElements.push({ 
-              id: newElement.attr('id'), 
-              type: 'wall', 
-              element: newElement, 
-              x: cursorPt.x, 
-              y: cursorPt.y 
-            });
-            break;
-            
-          case 'zone':
-            // Create placeholder for zone element (an ellipse)
-            newElement = (canvasGroup as any).ellipse(80, 60).move(cursorPt.x - 40, cursorPt.y - 30)
-              .fill('none').stroke({ width: 2, color: '#228B22' }).addClass('element').attr({ id: `zone-${Date.now()}` });
-            
-            newElements.push({ 
-              id: newElement.attr('id'), 
-              type: 'zone', 
-              element: newElement, 
-              x: cursorPt.x, 
-              y: cursorPt.y 
-            });
-            break;
-            
-          case 'text':
-            // Create placeholder for text element
-            newElement = (canvasGroup as any).text('Sample Text').move(cursorPt.x, cursorPt.y)
-              .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `text-${Date.now()}` });
-            
-            newElements.push({ 
-              id: newElement.attr('id'), 
-              type: 'text', 
-              element: newElement, 
-              x: cursorPt.x, 
-              y: cursorPt.y 
-            });
-            break;
-            
-          case 'icon':
-            // Create placeholder for icon element (a circle with an icon-like appearance)
-            newElement = (canvasGroup as any).circle(30).move(cursorPt.x - 15, cursorPt.y - 15)
-              .fill('#FFD700').stroke({ width: 2, color: '#000' }).addClass('element').attr({ id: `icon-${Date.now()}` });
-            
-            // Add a small 'i' inside the circle to represent an icon
-            const iconText = (canvasGroup as any).text('i').move(cursorPt.x - 5, cursorPt.y - 9)
-              .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `icon-text-${Date.now()}` });
-            
-            // Add both elements to the state
-            newElements.push(
-              { 
-                id: newElement.attr('id'), 
-                type: 'icon', 
-                element: newElement, 
-                x: cursorPt.x, 
-                y: cursorPt.y 
-              },
-              { 
-                id: iconText.attr('id'), 
-                type: 'icon-text', 
-                element: iconText, 
-                x: cursorPt.x - 5, 
-                y: cursorPt.y - 9 
-              }
-            );
-            break;
-            
-          case 'background':
-            // For now, just add a background-like rectangle that covers a portion of the canvas
-            newElement = (canvasGroup as any).rect(200, 150).move(cursorPt.x - 100, cursorPt.y - 75)
-              .fill('#f0f0f0').stroke({ width: 1, color: '#ccc' }).opacity(0.5)
-              .addClass('element').attr({ id: `bg-${Date.now()}` });
-            
-            newElements.push({ 
-              id: newElement.attr('id'), 
-              type: 'background', 
-              element: newElement, 
-              x: cursorPt.x, 
-              y: cursorPt.y 
-            });
-            break;
-        }
-
-        // Add the new elements to the state
-        if (newElements.length > 0) {
-          setCanvasState(prev => ({
-            ...prev,
-            elements: [...prev.elements, ...newElements]
-          }));
-        }
-
-        console.log(`${activeTool} element created at (${cursorPt.x}, ${cursorPt.y})`);
-      }
-    };
-
-    // Add the click event listener to the main SVG element instead of the canvas group
-    svgRef.current.on('click', handleCanvasClick);
-
-    // Clean up the event listener
-    return () => {
-      svgRef.current?.off('click', handleCanvasClick);
-    };
-  }, []);
+    onCanvasChange(canvasState);
+  }, [canvasState, onCanvasChange]);
 
   // Update canvas state when it changes
   useEffect(() => {
@@ -410,22 +291,22 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   // Highlight selected element
   const highlightElement = (elementId: string) => {
     if (!svgRef.current) return;
-    
+
     // Remove highlight from previously selected element
     const canvasGroup = (svgRef.current as any).findOne('#canvas-elements');
     if (!canvasGroup) return;
-    
+
     // Find all elements that might be highlighted and remove highlight
-    (canvasGroup as any).each(function(this: any) {
+    (canvasGroup as any).each(function (this: any) {
       const el = this;
       const elType = el.type || (el.node ? el.node.nodeName : 'unknown');
-      
+
       if (['path', 'polygon', 'circle', 'ellipse', 'rect'].includes(elType)) {
         // Reset to original stroke
         if (el.attr('data-original-stroke')) {
-          el.stroke({ 
-            color: el.attr('data-original-stroke'), 
-            width: parseInt(el.attr('data-original-stroke-width')) || 2 
+          el.stroke({
+            color: el.attr('data-original-stroke'),
+            width: parseInt(el.attr('data-original-stroke-width')) || 2
           });
           el.attr('data-original-stroke', null);
           el.attr('data-original-stroke-width', null);
@@ -442,21 +323,21 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         }
       }
     });
-    
+
     // Add highlight to selected element
     const element: any = (canvasGroup as any).findOne('#' + elementId);
     if (element) {
       const elementType = element.type || (element.node ? element.node.nodeName : 'unknown');
-      
+
       if (['path', 'polygon', 'circle', 'ellipse', 'rect'].includes(elementType)) {
         // Store original stroke to restore later
         const strokeObj = element.stroke() || {};
         const originalStroke = strokeObj.color || '#000';
         const originalStrokeWidth = strokeObj.width || 2;
-        
+
         element.attr({ 'data-original-stroke': originalStroke });
         element.attr({ 'data-original-stroke-width': originalStrokeWidth.toString() });
-        
+
         // Apply highlight
         element.stroke({ color: '#ff0000', width: 4 });
       } else if (elementType === 'text') {
@@ -464,11 +345,135 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         const fontObj = element.font() || {};
         const originalFont = fontObj.fill || '#000';
         element.attr({ 'data-original-font': originalFont });
-        
+
         // Apply highlight to text
         element.font({ fill: '#ff0000' });
       }
     }
+  };
+
+  // Function to place a primitive at the mouse position
+  const placePrimitive = (e: MouseEvent, activeTool: PrimitiveType) => {
+    if (!svgRef.current) return;
+
+    // Get canvas group to add elements to
+    const canvasGroup = svgRef.current.findOne('#canvas-elements');
+    if (!canvasGroup) return;
+
+    // Get the click position in SVG coordinates
+    const svgElement = svgRef.current.node as unknown as SVGSVGElement;
+    const pt = svgElement.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svgElement.getScreenCTM();
+    if (!ctm) return; // If CTM is null, we can't calculate the position
+    const cursorPt = pt.matrixTransform(ctm.inverse());
+
+    // Create the appropriate primitive based on the current tool
+    let newElements: CanvasElement[] = [];
+    let newElement: any = null;
+    let elementType: PrimitiveType | 'icon-text' = activeTool;
+
+    switch (activeTool) {
+      case 'wall':
+        // Create placeholder for wall element (a polygon)
+        newElement = (canvasGroup as any).polygon([
+          [cursorPt.x - 40, cursorPt.y - 5],
+          [cursorPt.x + 40, cursorPt.y - 5],
+          [cursorPt.x + 40, cursorPt.y + 5],
+          [cursorPt.x - 40, cursorPt.y + 5]
+        ]).fill('none').stroke({ width: 2, color: '#8B4513' }).addClass('element').attr({ id: `wall-${Date.now()}` });
+
+        newElements.push({
+          id: newElement.attr('id'),
+          type: 'wall',
+          element: newElement,
+          x: cursorPt.x,
+          y: cursorPt.y
+        });
+        break;
+
+      case 'zone':
+        // Create placeholder for zone element (an ellipse)
+        newElement = (canvasGroup as any).ellipse(80, 60).move(cursorPt.x - 40, cursorPt.y - 30)
+          .fill('none').stroke({ width: 2, color: '#228B22' }).addClass('element').attr({ id: `zone-${Date.now()}` });
+
+        newElements.push({
+          id: newElement.attr('id'),
+          type: 'zone',
+          element: newElement,
+          x: cursorPt.x,
+          y: cursorPt.y
+        });
+        break;
+
+      case 'text':
+        // Create placeholder for text element
+        newElement = (canvasGroup as any).text('Sample Text').move(cursorPt.x, cursorPt.y)
+          .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `text-${Date.now()}` });
+
+        newElements.push({
+          id: newElement.attr('id'),
+          type: 'text',
+          element: newElement,
+          x: cursorPt.x,
+          y: cursorPt.y
+        });
+        break;
+
+      case 'icon':
+        // Create placeholder for icon element (a circle with an icon-like appearance)
+        newElement = (canvasGroup as any).circle(30).move(cursorPt.x - 15, cursorPt.y - 15)
+          .fill('#FFD700').stroke({ width: 2, color: '#000' }).addClass('element').attr({ id: `icon-${Date.now()}` });
+
+        // Add a small 'i' inside the circle to represent an icon
+        const iconText = (canvasGroup as any).text('i').move(cursorPt.x - 5, cursorPt.y - 9)
+          .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `icon-text-${Date.now()}` });
+
+        // Add both elements to the state
+        newElements.push(
+          {
+            id: newElement.attr('id'),
+            type: 'icon',
+            element: newElement,
+            x: cursorPt.x,
+            y: cursorPt.y
+          },
+          {
+            id: iconText.attr('id'),
+            type: 'icon-text',
+            element: iconText,
+            x: cursorPt.x - 5,
+            y: cursorPt.y - 9
+          }
+        );
+        break;
+
+      case 'background':
+        // For now, just add a background-like rectangle that covers a portion of the canvas
+        newElement = (canvasGroup as any).rect(200, 150).move(cursorPt.x - 100, cursorPt.y - 75)
+          .fill('#f0f0f0').stroke({ width: 1, color: '#ccc' }).opacity(0.5)
+          .addClass('element').attr({ id: `bg-${Date.now()}` });
+
+        newElements.push({
+          id: newElement.attr('id'),
+          type: 'background',
+          element: newElement,
+          x: cursorPt.x,
+          y: cursorPt.y
+        });
+        break;
+    }
+
+    // Add the new elements to the state
+    if (newElements.length > 0) {
+      setCanvasState(prev => ({
+        ...prev,
+        elements: [...prev.elements, ...newElements]
+      }));
+    }
+
+    console.log(`${activeTool} element created at (${cursorPt.x}, ${cursorPt.y})`);
   };
 
   // Draw grid to cover the entire visible area plus some padding for panning
@@ -479,13 +484,13 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     }
 
     (gridGroup as any).clear();
-    
+
     const vb = draw.viewbox();
     const width = vb.width;
     const height = vb.height;
     const x = vb.x;
     const y = vb.y;
-    
+
     // Calculate start and end points for grid lines based on viewbox with extra coverage
     // This ensures the grid covers the visible area plus some extra for panning
     const extraCoverage = Math.max(width, height) * 2; // 2x the largest dimension
@@ -493,13 +498,13 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     const endX = Math.ceil((x + width + extraCoverage / 2) / gridSettings.spacing) * gridSettings.spacing;
     const startY = Math.floor((y - extraCoverage / 2) / gridSettings.spacing) * gridSettings.spacing;
     const endY = Math.ceil((y + height + extraCoverage / 2) / gridSettings.spacing) * gridSettings.spacing;
-    
+
     // Draw vertical grid lines
     for (let x_pos = startX; x_pos <= endX; x_pos += gridSettings.spacing) {
       (gridGroup as any).line(x_pos, startY, x_pos, endY)
         .stroke({ width: 1, color: gridSettings.color, opacity: gridSettings.opacity });
     }
-    
+
     // Draw horizontal grid lines
     for (let y_pos = startY; y_pos <= endY; y_pos += gridSettings.spacing) {
       (gridGroup as any).line(startX, y_pos, endX, y_pos)
@@ -548,12 +553,12 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   return (
     <div className="flex flex-col h-full">
       {/* Canvas container */}
-      <div 
-        ref={containerRef} 
+      <div
+        ref={containerRef}
         className="flex-1 bg-white border rounded-lg overflow-hidden w-full"
         style={{ minHeight: '500px' }}
       />
-      
+
       {/* Grid Controls */}
       <Card className="mt-4">
         <CardHeader>
@@ -561,15 +566,15 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
-            <Button 
-              onClick={toggleGrid} 
+            <Button
+              onClick={toggleGrid}
               variant={gridSettings.enabled ? "default" : "outline"}
               size="sm"
             >
               {gridSettings.enabled ? "Hide Grid" : "Show Grid"}
             </Button>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="grid-spacing">Spacing: {gridSettings.spacing}px</Label>
             <Input
@@ -582,7 +587,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
               className="w-full"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="grid-color">Color</Label>
             <Input
@@ -592,7 +597,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
               onChange={handleGridColorChange}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="grid-opacity">Opacity: {Math.round(gridSettings.opacity * 100)}%</Label>
             <Input
