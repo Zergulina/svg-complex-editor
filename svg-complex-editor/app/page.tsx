@@ -2,6 +2,7 @@
 
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import Canvas from "@/components/Canvas";
 import { SidebarProvider, useSidebar } from "@/components/SidebarContext";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -254,6 +255,21 @@ const HomePageContent = () => {
                 <p className="text-sm"><span className="font-medium">Selected Tool:</span> {state.selectedTool}</p>
               </div>
             )}
+          </div>
+          
+          {/* Canvas component */}
+          <div className="mt-4 h-[600px]">
+            <Canvas 
+              onSelectionChange={(elementId) => {
+                console.log("Element selected:", elementId);
+                // Update selection state if needed
+              }}
+              onCanvasChange={(state) => {
+                console.log("Canvas state changed:", state);
+                // Handle canvas state changes if needed
+              }}
+              currentTool={state.selectedTool as any}
+            />
           </div>
         </main>
       </div>
