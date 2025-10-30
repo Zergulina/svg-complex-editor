@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { SVG } from '@svgdotjs/svg.js';
+import { SVG, Svg } from '@svgdotjs/svg.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,8 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Define types for our primitives
 type PrimitiveType = 'wall' | 'zone' | 'text' | 'icon' | 'background';
+
+interface CanvasElement {
+  id: string;
+  type: PrimitiveType | 'icon-text';
+  element: any;
+}
+
 type CanvasState = {
-  elements: any[];
+  elements: CanvasElement[];
   selectedElementId: string | null;
   viewBox: { x: number; y: number; width: number; height: number };
   scale: number;
@@ -31,7 +38,7 @@ interface GridSettings {
 
 const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, currentTool }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<any>(null);
+  const svgRef = useRef<Svg>(null);
   const [canvasState, setCanvasState] = useState<CanvasState>({
     elements: [],
     selectedElementId: null,
@@ -48,7 +55,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   // Initialize SVG canvas
   useEffect(() => {
     if (containerRef.current && !svgRef.current) {
-      const draw = SVG().addTo(containerRef.current).size('100%', '100%');
+      const draw: Svg = SVG().addTo(containerRef.current).size('100%', '100%');
       svgRef.current = draw;
 
       // Create a group for all canvas elements - this group will contain all the drawn elements
@@ -58,38 +65,36 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
       const gridGroup = draw.group().attr({ id: 'grid' });
       
       // Handle clicks on the canvas background to deselect elements
-      draw.on('click', (e: MouseEvent) => {
+      draw.on('click', (e: Event) => {
+        const event = e as MouseEvent;
         // Deselect any selected element when clicking on canvas background
-        if (e.target === draw.node || e.target === containerRef.current || e.target === canvasGroup.node) {
+        if (event.target === draw.node || event.target === containerRef.current || (event.target as Node).nodeName === 'svg') {
           setCanvasState(prev => ({ ...prev, selectedElementId: null }));
           onSelectionChange(null);
         }
       });
       
       // Handle clicks specifically on elements to select them
-      canvasGroup.click((e: MouseEvent) => {
+      draw.on('click', (e: Event) => {
+        const event = e as MouseEvent;
         // Check if the clicked element or one of its ancestors has the 'element' class
-        let target = e.target as HTMLElement;
-        let elementNode = null;
+        let target = event.target as HTMLElement;
         
         // Traverse up the DOM tree to find an SVG element with the 'element' class
-        while (target && target !== canvasGroup.node) {
-          if (target.classList && target.classList.contains('element')) {
-            elementNode = target;
-            break;
+        while (target && target !== draw.node) {
+          if (target.classList && target.classList.contains('element') && target.id) {
+            event.stopPropagation(); // Prevent the click from bubbling to the canvas background
+            
+            const elementId = target.id;
+            
+            setCanvasState(prev => ({ ...prev, selectedElementId: elementId }));
+            onSelectionChange(elementId);
+            
+            // Highlight the selected element
+            highlightElement(elementId);
+            return;
           }
-          target = target.parentNode as HTMLElement;
-        }
-        
-        if (elementNode && elementNode.id) {
-          e.stopPropagation(); // Prevent the click from bubbling to the canvas background
-          const elementId = elementNode.id;
-          
-          setCanvasState(prev => ({ ...prev, selectedElementId: elementId }));
-          onSelectionChange(elementId);
-          
-          // Highlight the selected element
-          highlightElement(elementId);
+          target = target.parentElement as HTMLElement;
         }
       });
       
@@ -149,7 +154,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           e.preventDefault();
         } else if (e.button === 0) {
           // Left mouse button - check if clicking on canvas background (not on elements) for drag panning
-          if (e.target === draw.node || e.target === containerRef.current || e.target === canvasGroup.node) {
+          if (e.target === draw.node || e.target === containerRef.current || (e.target as Node).nodeName === 'svg') {
             isDragging = true;
             startMouseX = e.clientX;
             startMouseY = e.clientY;
@@ -272,17 +277,21 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     }
   }, [currentTool]);
 
+  // Define types for SVG elements
+  type SvgElement = any; // SVG.js doesn't have perfect TypeScript support
+
   // Set up drawing functionality for each primitive type
   const setupWallDrawing = (canvasGroup: any) => {
     // For now, just allow user to click to create a simple wall-like element
     canvasGroup.off('click.wall');
-    canvasGroup.on('click.wall', (e: MouseEvent) => {
-      if (e.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
+    canvasGroup.on('click.wall', (e: Event) => {
+      const event = e as MouseEvent;
+      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
       
       // Get the click position in SVG coordinates
       const pt = canvasGroup.node.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
+      pt.x = event.clientX;
+      pt.y = event.clientY;
       const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
       
       // Create placeholder for wall element (a polygon)
@@ -305,13 +314,14 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
 
   const setupZoneDrawing = (canvasGroup: any) => {
     canvasGroup.off('click.zone');
-    canvasGroup.on('click.zone', (e: MouseEvent) => {
-      if (e.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
+    canvasGroup.on('click.zone', (e: Event) => {
+      const event = e as MouseEvent;
+      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
       
       // Get the click position in SVG coordinates
       const pt = canvasGroup.node.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
+      pt.x = event.clientX;
+      pt.y = event.clientY;
       const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
       
       // Create placeholder for zone element (an ellipse)
@@ -330,13 +340,14 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
 
   const setupTextDrawing = (canvasGroup: any) => {
     canvasGroup.off('click.text');
-    canvasGroup.on('click.text', (e: MouseEvent) => {
-      if (e.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
+    canvasGroup.on('click.text', (e: Event) => {
+      const event = e as MouseEvent;
+      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
       
       // Get the click position in SVG coordinates
       const pt = canvasGroup.node.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
+      pt.x = event.clientX;
+      pt.y = event.clientY;
       const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
       
       // Create placeholder for text element
@@ -355,13 +366,14 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
 
   const setupIconDrawing = (canvasGroup: any) => {
     canvasGroup.off('click.icon');
-    canvasGroup.on('click.icon', (e: MouseEvent) => {
-      if (e.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
+    canvasGroup.on('click.icon', (e: Event) => {
+      const event = e as MouseEvent;
+      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
       
       // Get the click position in SVG coordinates
       const pt = canvasGroup.node.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
+      pt.x = event.clientX;
+      pt.y = event.clientY;
       const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
       
       // Create placeholder for icon element (a circle with an icon-like appearance)
@@ -389,13 +401,14 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   const setupBackgroundDrawing = (canvasGroup: any) => {
     // Backgrounds are typically full canvas size elements
     canvasGroup.off('click.background');
-    canvasGroup.on('click.background', (e: MouseEvent) => {
-      if (e.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
+    canvasGroup.on('click.background', (e: Event) => {
+      const event = e as MouseEvent;
+      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
       
       // Get the click position in SVG coordinates
       const pt = canvasGroup.node.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
+      pt.x = event.clientX;
+      pt.y = event.clientY;
       const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
       
       // For now, just add a background-like rectangle that covers a portion of the canvas
@@ -427,18 +440,23 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     if (!canvasGroup) return;
     
     // Find all elements that might be highlighted and remove highlight
-    canvasGroup.each(function() {
-      const el = this as any;
-      if (el.type === 'path' || el.type === 'polygon' || el.type === 'circle' || el.type === 'ellipse' || el.type === 'rect') {
+    canvasGroup.each(function(this: any) {
+      const el = this;
+      const elType = el.type || (el.node ? el.node.nodeName : 'unknown');
+      
+      if (['path', 'polygon', 'circle', 'ellipse', 'rect'].includes(elType)) {
         // Reset to original stroke
         if (el.attr('data-original-stroke')) {
-          el.stroke({ color: el.attr('data-original-stroke'), width: parseInt(el.attr('data-original-stroke-width')) || 2 });
+          el.stroke({ 
+            color: el.attr('data-original-stroke'), 
+            width: parseInt(el.attr('data-original-stroke-width')) || 2 
+          });
           el.attr('data-original-stroke', null);
           el.attr('data-original-stroke-width', null);
         } else {
           el.stroke({ color: '#000', width: 2 });
         }
-      } else if (el.type === 'text') {
+      } else if (elType === 'text') {
         // Reset text style if it was highlighted
         if (el.attr('data-original-font')) {
           el.font({ fill: el.attr('data-original-font') });
@@ -450,11 +468,13 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     });
     
     // Add highlight to selected element
-    const element = canvasGroup.findOne('#' + elementId);
+    const element: any = canvasGroup.findOne('#' + elementId);
     if (element) {
-      if (element.type === 'path' || element.type === 'polygon' || element.type === 'circle' || element.type === 'ellipse' || element.type === 'rect') {
+      const elementType = element.type || (element.node ? element.node.nodeName : 'unknown');
+      
+      if (['path', 'polygon', 'circle', 'ellipse', 'rect'].includes(elementType)) {
         // Store original stroke to restore later
-        const strokeObj = element.stroke();
+        const strokeObj = element.stroke() || {};
         const originalStroke = strokeObj.color || '#000';
         const originalStrokeWidth = strokeObj.width || 2;
         
@@ -463,9 +483,9 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         
         // Apply highlight
         element.stroke({ color: '#ff0000', width: 4 });
-      } else if (element.type === 'text') {
+      } else if (elementType === 'text') {
         // Store original font to restore later
-        const fontObj = element.font();
+        const fontObj = element.font() || {};
         const originalFont = fontObj.fill || '#000';
         element.attr({ 'data-original-font': originalFont });
         
@@ -476,7 +496,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   };
 
   // Draw grid to cover the entire visible area plus some padding for panning
-  const drawGrid = (draw: any, gridGroup: any) => {
+  const drawGrid = (draw: Svg, gridGroup: any) => {
     if (!gridSettings.enabled) {
       gridGroup.clear();
       return;
