@@ -69,11 +69,11 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
       const draw: Svg = SVG().addTo(containerRef.current).size('100%', '100%');
       svgRef.current = draw;
 
+      // Create a group for the grid first (so it renders underneath)
+      const gridGroup = draw.group().attr({ id: 'grid' });
+
       // Create a group for all canvas elements - this group will contain all the drawn elements
       const canvasGroup = draw.group().attr({ id: 'canvas-elements' });
-
-      // Create a group for the grid
-      const gridGroup = draw.group().attr({ id: 'grid' });
 
       // Set initial viewbox to show a reasonable area
       draw.viewbox(0, 0, 800, 600);
@@ -180,14 +180,18 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           // Handle both primitive placement and element selection when mouse hasn't moved significantly
           const target = e.target as HTMLElement;
 
-          // Check if clicked on an existing primitive element
+          // Check if clicked on an existing primitive element (but not on the grid)
           let clickedOnElement = false;
           let currentTarget = target as HTMLElement;
           let elementId: string | null = null;
-          console.log("bebebe");
+          let isOnGrid = false; // Track if the click was on the grid
 
           // Traverse up the DOM tree to find an element with the 'element' class
+          // Also check if we clicked on the grid group itself
           while (currentTarget && currentTarget !== draw.node as Node) {
+            if (currentTarget.id === 'grid') {
+              isOnGrid = true;
+            }
             if (currentTarget.classList && currentTarget.classList.contains('element') && currentTarget.id) {
               clickedOnElement = true;
               elementId = currentTarget.id;
@@ -206,8 +210,10 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
             // Highlight the selected element
             highlightElement(elementId);
           } else {
-            // Clicked on canvas background - place primitive if tool is active, otherwise deselect
-            if (target === draw.node as unknown as HTMLElement || draw.node.contains(target as Node)) {
+            // Clicked on canvas background or grid - place primitive if tool is active, otherwise deselect
+            if (target === draw.node as unknown as HTMLElement || 
+                draw.node.contains(target as Node) || 
+                isOnGrid) {
               // Mouse up was on canvas background without significant movement
               const activeTool = currentToolRef.current;
               console.log("aboba");
