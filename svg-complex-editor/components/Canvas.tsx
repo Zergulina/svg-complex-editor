@@ -14,6 +14,8 @@ interface CanvasElement {
   id: string;
   type: PrimitiveType | 'icon-text';
   element: any;
+  x: number;
+  y: number;
 }
 
 type CanvasState = {
@@ -68,7 +70,8 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
       draw.on('click', (e: Event) => {
         const event = e as MouseEvent;
         // Deselect any selected element when clicking on canvas background
-        if (event.target === draw.node || event.target === containerRef.current || (event.target as Node).nodeName === 'svg') {
+        // Check if the click is on the SVG canvas itself (not on any child elements)
+        if ((event.target as SVGElement).nodeName === 'svg') {
           setCanvasState(prev => ({ ...prev, selectedElementId: null }));
           onSelectionChange(null);
         }
@@ -81,7 +84,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         let target = event.target as HTMLElement;
         
         // Traverse up the DOM tree to find an SVG element with the 'element' class
-        while (target && target !== draw.node) {
+        while (target && (target as Node).nodeName !== 'svg') {
           if (target.classList && target.classList.contains('element') && target.id) {
             event.stopPropagation(); // Prevent the click from bubbling to the canvas background
             
@@ -154,7 +157,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           e.preventDefault();
         } else if (e.button === 0) {
           // Left mouse button - check if clicking on canvas background (not on elements) for drag panning
-          if (e.target === draw.node || e.target === containerRef.current || (e.target as Node).nodeName === 'svg') {
+          if ((e.target as SVGElement).nodeName === 'svg' || e.target === containerRef.current) {
             isDragging = true;
             startMouseX = e.clientX;
             startMouseY = e.clientY;
@@ -236,195 +239,168 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     };
   }, []);
 
-  // Update canvas when tool changes
+  // Ensure both canvas elements and grid update when viewbox changes
   useEffect(() => {
     if (svgRef.current) {
-      const canvasGroup = svgRef.current.findOne('#canvas-elements');
-      if (!canvasGroup) return;
-
-      // Clear any active drawing states
-      canvasGroup.off('click.wall');
-      canvasGroup.off('click.zone');
-      canvasGroup.off('click.text');
-      canvasGroup.off('click.icon');
-      canvasGroup.off('click.background');
-
-      // Handle tool-specific actions
-      switch (currentTool) {
-        case 'wall':
-          console.log('Wall tool selected');
-          setupWallDrawing(canvasGroup);
-          break;
-        case 'zone':
-          console.log('Zone tool selected');
-          setupZoneDrawing(canvasGroup);
-          break;
-        case 'text':
-          console.log('Text tool selected');
-          setupTextDrawing(canvasGroup);
-          break;
-        case 'icon':
-          console.log('Icon tool selected');
-          setupIconDrawing(canvasGroup);
-          break;
-        case 'background':
-          console.log('Background tool selected');
-          setupBackgroundDrawing(canvasGroup);
-          break;
-        default:
-          break;
+      const gridGroup = svgRef.current.findOne('#grid');
+      if (gridGroup) {
+        drawGrid(svgRef.current, gridGroup);
       }
     }
+  }, [canvasState.viewBox]);
+
+  // Create a ref to track the current tool to avoid dependency issues in effects
+  const currentToolRef = useRef<PrimitiveType | null>(null);
+  useEffect(() => {
+    currentToolRef.current = currentTool;
   }, [currentTool]);
 
-  // Define types for SVG elements
-  type SvgElement = any; // SVG.js doesn't have perfect TypeScript support
+  // Handle canvas click for placing primitives when a tool is active
+  useEffect(() => {
+    if (!svgRef.current) return;
 
-  // Set up drawing functionality for each primitive type
-  const setupWallDrawing = (canvasGroup: any) => {
-    // For now, just allow user to click to create a simple wall-like element
-    canvasGroup.off('click.wall');
-    canvasGroup.on('click.wall', (e: Event) => {
-      const event = e as MouseEvent;
-      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
-      
-      // Get the click position in SVG coordinates
-      const pt = canvasGroup.node.createSVGPoint();
-      pt.x = event.clientX;
-      pt.y = event.clientY;
-      const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
-      
-      // Create placeholder for wall element (a polygon)
-      const wall = canvasGroup.polygon([
-        [cursorPt.x - 40, cursorPt.y - 5],
-        [cursorPt.x + 40, cursorPt.y - 5], 
-        [cursorPt.x + 40, cursorPt.y + 5],
-        [cursorPt.x - 40, cursorPt.y + 5]
-      ]).fill('none').stroke({ width: 2, color: '#8B4513' }).addClass('element').attr({ id: `wall-${Date.now()}` });
-      
-      // Add to elements in state
-      setCanvasState(prev => ({
-        ...prev,
-        elements: [...prev.elements, { id: wall.attr('id'), type: 'wall', element: wall }]
-      }));
-      
-      console.log('Wall element created');
-    });
-  };
+    const canvasGroup = svgRef.current.findOne('#canvas-elements');
+    if (!canvasGroup) return;
 
-  const setupZoneDrawing = (canvasGroup: any) => {
-    canvasGroup.off('click.zone');
-    canvasGroup.on('click.zone', (e: Event) => {
+    // Function to handle canvas clicking for placing primitives
+    const handleCanvasClick = (e: Event) => {
       const event = e as MouseEvent;
-      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
       
-      // Get the click position in SVG coordinates
-      const pt = canvasGroup.node.createSVGPoint();
-      pt.x = event.clientX;
-      pt.y = event.clientY;
-      const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
-      
-      // Create placeholder for zone element (an ellipse)
-      const zone = canvasGroup.ellipse(80, 60).move(cursorPt.x - 40, cursorPt.y - 30)
-        .fill('none').stroke({ width: 2, color: '#228B22' }).addClass('element').attr({ id: `zone-${Date.now()}` });
-      
-      // Add to elements in state
-      setCanvasState(prev => ({
-        ...prev,
-        elements: [...prev.elements, { id: zone.attr('id'), type: 'zone', element: zone }]
-      }));
-      
-      console.log('Zone element created');
-    });
-  };
+      // Only respond to clicks on the SVG background, not on existing elements
+      if ((event.target as SVGElement).nodeName === 'svg') {
+        // Only proceed if we have an active tool
+        const activeTool = currentToolRef.current;
+        if (!activeTool) return;
 
-  const setupTextDrawing = (canvasGroup: any) => {
-    canvasGroup.off('click.text');
-    canvasGroup.on('click.text', (e: Event) => {
-      const event = e as MouseEvent;
-      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
-      
-      // Get the click position in SVG coordinates
-      const pt = canvasGroup.node.createSVGPoint();
-      pt.x = event.clientX;
-      pt.y = event.clientY;
-      const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
-      
-      // Create placeholder for text element
-      const text = canvasGroup.text('Sample Text').move(cursorPt.x, cursorPt.y)
-        .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `text-${Date.now()}` });
-      
-      // Add to elements in state
-      setCanvasState(prev => ({
-        ...prev,
-        elements: [...prev.elements, { id: text.attr('id'), type: 'text', element: text }]
-      }));
-      
-      console.log('Text element created');
-    });
-  };
+        if (!svgRef.current) return;
+        
+        // Get canvas group to add elements to
+        const canvasGroup = svgRef.current.findOne('#canvas-elements');
+        if (!canvasGroup) return;
+        
+        // Get the click position in SVG coordinates
+        const svgElement = svgRef.current.node as unknown as SVGSVGElement;
+        const pt = svgElement.createSVGPoint();
+        pt.x = event.clientX;
+        pt.y = event.clientY;
+        const cursorPt = pt.matrixTransform(svgElement.getScreenCTM().inverse());
+        
+        // Create the appropriate primitive based on the current tool
+        let newElements: CanvasElement[] = [];
+        let newElement: any = null;
+        let elementType: PrimitiveType | 'icon-text' = activeTool;
 
-  const setupIconDrawing = (canvasGroup: any) => {
-    canvasGroup.off('click.icon');
-    canvasGroup.on('click.icon', (e: Event) => {
-      const event = e as MouseEvent;
-      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
-      
-      // Get the click position in SVG coordinates
-      const pt = canvasGroup.node.createSVGPoint();
-      pt.x = event.clientX;
-      pt.y = event.clientY;
-      const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
-      
-      // Create placeholder for icon element (a circle with an icon-like appearance)
-      const icon = canvasGroup.circle(30).move(cursorPt.x - 15, cursorPt.y - 15)
-        .fill('#FFD700').stroke({ width: 2, color: '#000' }).addClass('element').attr({ id: `icon-${Date.now()}` });
-      
-      // Add a small 'i' inside the circle to represent an icon
-      const iconText = canvasGroup.text('i').move(cursorPt.x - 5, cursorPt.y - 9)
-        .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `icon-text-${Date.now()}` });
-      
-      // Add to elements in state
-      setCanvasState(prev => ({
-        ...prev,
-        elements: [
-          ...prev.elements, 
-          { id: icon.attr('id'), type: 'icon', element: icon },
-          { id: iconText.attr('id'), type: 'icon-text', element: iconText }
-        ]
-      }));
-      
-      console.log('Icon element created');
-    });
-  };
+        switch (activeTool) {
+          case 'wall':
+            // Create placeholder for wall element (a polygon)
+            newElement = (canvasGroup as any).polygon([
+              [cursorPt.x - 40, cursorPt.y - 5],
+              [cursorPt.x + 40, cursorPt.y - 5], 
+              [cursorPt.x + 40, cursorPt.y + 5],
+              [cursorPt.x - 40, cursorPt.y + 5]
+            ]).fill('none').stroke({ width: 2, color: '#8B4513' }).addClass('element').attr({ id: `wall-${Date.now()}` });
+            
+            newElements.push({ 
+              id: newElement.attr('id'), 
+              type: 'wall', 
+              element: newElement, 
+              x: cursorPt.x, 
+              y: cursorPt.y 
+            });
+            break;
+            
+          case 'zone':
+            // Create placeholder for zone element (an ellipse)
+            newElement = (canvasGroup as any).ellipse(80, 60).move(cursorPt.x - 40, cursorPt.y - 30)
+              .fill('none').stroke({ width: 2, color: '#228B22' }).addClass('element').attr({ id: `zone-${Date.now()}` });
+            
+            newElements.push({ 
+              id: newElement.attr('id'), 
+              type: 'zone', 
+              element: newElement, 
+              x: cursorPt.x, 
+              y: cursorPt.y 
+            });
+            break;
+            
+          case 'text':
+            // Create placeholder for text element
+            newElement = (canvasGroup as any).text('Sample Text').move(cursorPt.x, cursorPt.y)
+              .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `text-${Date.now()}` });
+            
+            newElements.push({ 
+              id: newElement.attr('id'), 
+              type: 'text', 
+              element: newElement, 
+              x: cursorPt.x, 
+              y: cursorPt.y 
+            });
+            break;
+            
+          case 'icon':
+            // Create placeholder for icon element (a circle with an icon-like appearance)
+            newElement = (canvasGroup as any).circle(30).move(cursorPt.x - 15, cursorPt.y - 15)
+              .fill('#FFD700').stroke({ width: 2, color: '#000' }).addClass('element').attr({ id: `icon-${Date.now()}` });
+            
+            // Add a small 'i' inside the circle to represent an icon
+            const iconText = (canvasGroup as any).text('i').move(cursorPt.x - 5, cursorPt.y - 9)
+              .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `icon-text-${Date.now()}` });
+            
+            // Add both elements to the state
+            newElements.push(
+              { 
+                id: newElement.attr('id'), 
+                type: 'icon', 
+                element: newElement, 
+                x: cursorPt.x, 
+                y: cursorPt.y 
+              },
+              { 
+                id: iconText.attr('id'), 
+                type: 'icon-text', 
+                element: iconText, 
+                x: cursorPt.x - 5, 
+                y: cursorPt.y - 9 
+              }
+            );
+            break;
+            
+          case 'background':
+            // For now, just add a background-like rectangle that covers a portion of the canvas
+            newElement = (canvasGroup as any).rect(200, 150).move(cursorPt.x - 100, cursorPt.y - 75)
+              .fill('#f0f0f0').stroke({ width: 1, color: '#ccc' }).opacity(0.5)
+              .addClass('element').attr({ id: `bg-${Date.now()}` });
+            
+            newElements.push({ 
+              id: newElement.attr('id'), 
+              type: 'background', 
+              element: newElement, 
+              x: cursorPt.x, 
+              y: cursorPt.y 
+            });
+            break;
+        }
 
-  const setupBackgroundDrawing = (canvasGroup: any) => {
-    // Backgrounds are typically full canvas size elements
-    canvasGroup.off('click.background');
-    canvasGroup.on('click.background', (e: Event) => {
-      const event = e as MouseEvent;
-      if (event.target !== canvasGroup.node) return; // Only respond to clicks on canvas, not elements
-      
-      // Get the click position in SVG coordinates
-      const pt = canvasGroup.node.createSVGPoint();
-      pt.x = event.clientX;
-      pt.y = event.clientY;
-      const cursorPt = pt.matrixTransform(canvasGroup.node.getScreenCTM().inverse());
-      
-      // For now, just add a background-like rectangle that covers a portion of the canvas
-      const bg = canvasGroup.rect(200, 150).move(cursorPt.x - 100, cursorPt.y - 75)
-        .fill('#f0f0f0').stroke({ width: 1, color: '#ccc' }).opacity(0.5)
-        .addClass('element').attr({ id: `bg-${Date.now()}` });
-      
-      // Add to elements in state
-      setCanvasState(prev => ({
-        ...prev,
-        elements: [...prev.elements, { id: bg.attr('id'), type: 'background', element: bg }]
-      }));
-      
-      console.log('Background element created');
-    });
-  };
+        // Add the new elements to the state
+        if (newElements.length > 0) {
+          setCanvasState(prev => ({
+            ...prev,
+            elements: [...prev.elements, ...newElements]
+          }));
+        }
+
+        console.log(`${activeTool} element created at (${cursorPt.x}, ${cursorPt.y})`);
+      }
+    };
+
+    // Add the click event listener to the main SVG element instead of the canvas group
+    svgRef.current.on('click', handleCanvasClick);
+
+    // Clean up the event listener
+    return () => {
+      svgRef.current?.off('click', handleCanvasClick);
+    };
+  }, []);
 
   // Update canvas state when it changes
   useEffect(() => {
@@ -436,11 +412,11 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     if (!svgRef.current) return;
     
     // Remove highlight from previously selected element
-    const canvasGroup = svgRef.current.findOne('#canvas-elements');
+    const canvasGroup = (svgRef.current as any).findOne('#canvas-elements');
     if (!canvasGroup) return;
     
     // Find all elements that might be highlighted and remove highlight
-    canvasGroup.each(function(this: any) {
+    (canvasGroup as any).each(function(this: any) {
       const el = this;
       const elType = el.type || (el.node ? el.node.nodeName : 'unknown');
       
@@ -468,7 +444,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     });
     
     // Add highlight to selected element
-    const element: any = canvasGroup.findOne('#' + elementId);
+    const element: any = (canvasGroup as any).findOne('#' + elementId);
     if (element) {
       const elementType = element.type || (element.node ? element.node.nodeName : 'unknown');
       
@@ -498,11 +474,11 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   // Draw grid to cover the entire visible area plus some padding for panning
   const drawGrid = (draw: Svg, gridGroup: any) => {
     if (!gridSettings.enabled) {
-      gridGroup.clear();
+      (gridGroup as any).clear();
       return;
     }
 
-    gridGroup.clear();
+    (gridGroup as any).clear();
     
     const vb = draw.viewbox();
     const width = vb.width;
@@ -520,13 +496,13 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     
     // Draw vertical grid lines
     for (let x_pos = startX; x_pos <= endX; x_pos += gridSettings.spacing) {
-      gridGroup.line(x_pos, startY, x_pos, endY)
+      (gridGroup as any).line(x_pos, startY, x_pos, endY)
         .stroke({ width: 1, color: gridSettings.color, opacity: gridSettings.opacity });
     }
     
     // Draw horizontal grid lines
     for (let y_pos = startY; y_pos <= endY; y_pos += gridSettings.spacing) {
-      gridGroup.line(startX, y_pos, endX, y_pos)
+      (gridGroup as any).line(startX, y_pos, endX, y_pos)
         .stroke({ width: 1, color: gridSettings.color, opacity: gridSettings.opacity });
     }
   };
