@@ -294,7 +294,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   }, [currentTool]);
 
   // Create a ref to track the current zone properties to avoid closure issues
-  const zonePropertiesRef = useRef<ZoneProperties | undefined>();
+  const zonePropertiesRef = useRef<ZoneProperties | undefined>(undefined);
   useEffect(() => {
     zonePropertiesRef.current = zoneProperties;
   }, [zoneProperties]);

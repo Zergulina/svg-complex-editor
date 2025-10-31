@@ -415,14 +415,14 @@ const Sidebar = ({
             {state.activeTab === 'icons' && (
               <IconComponent 
                 onSelect={handleIconSelect} 
-                isSelected={state.selectedTool && state.selectedTool.startsWith('icon-')}
+                isSelected={!!state.selectedTool && state.selectedTool.startsWith('icon-')}
               />
             )}
 
             {state.activeTab === 'backgrounds' && (
               <BackgroundImageComponent 
                 onSelect={handleBackgroundSelect} 
-                isSelected={state.selectedTool && state.selectedTool.startsWith('bg-')}
+                isSelected={!!state.selectedTool && state.selectedTool.startsWith('bg-')}
               />
             )}
           </div>

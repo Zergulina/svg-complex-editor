@@ -10,7 +10,7 @@ import {
   Circle,
   Settings
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface ZoneComponentProps {
   onSelect: (type: string, properties: any) => void;
@@ -24,6 +24,24 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
   const [zoneText, setZoneText] = useState('Zone');
   const [borderColor, setBorderColor] = useState('#228B22'); // Default green for zone border
   const [fillColor, setFillColor] = useState('none'); // Default no fill
+
+  // Refs to track current values to avoid closure issues
+  const borderColorRef = useRef(borderColor);
+  const fillColorRef = useRef(fillColor);
+  const zoneTextRef = useRef(zoneText);
+
+  // Update refs when state changes
+  useEffect(() => {
+    borderColorRef.current = borderColor;
+  }, [borderColor]);
+
+  useEffect(() => {
+    fillColorRef.current = fillColor;
+  }, [fillColor]);
+
+  useEffect(() => {
+    zoneTextRef.current = zoneText;
+  }, [zoneText]);
 
   // Initialize sidesString when component mounts
   useEffect(() => {
@@ -46,9 +64,9 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
     onSelect(type, {
       type,
       sides: type === 'polygon' ? (sidesString !== '' ? parseInt(sidesString) || 4 : 4) : undefined,
-      text: zoneText,
-      borderColor,
-      fillColor,
+      text: zoneTextRef.current,
+      borderColor: borderColorRef.current,
+      fillColor: fillColorRef.current,
     });
   };
 
@@ -57,11 +75,11 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
     onSelect(zoneType, {
       type: zoneType,
       sides: zoneType === 'polygon' ? validSides : undefined,
-      text: zoneText,
-      borderColor,
-      fillColor,
+      text: zoneTextRef.current,
+      borderColor: borderColorRef.current,
+      fillColor: fillColorRef.current,
     });
-    console.log(`zone property changed; border color = ${borderColor}`)
+    console.log(`zone property changed; border color = ${borderColorRef.current}`)
   };
 
   return (
@@ -184,6 +202,7 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
               value={borderColor}
               onChange={(e) => {
                 setBorderColor(e.target.value);
+                borderColorRef.current = e.target.value;
                 console.log(`border color 1: ${borderColor}`);
                 handlePropertyChange();
               }}
@@ -194,6 +213,7 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
               value={borderColor}
               onChange={(e) => {
                 setBorderColor(e.target.value);
+                borderColorRef.current = e.target.value;
                 console.log(`border color 2: ${borderColor}`);
                 handlePropertyChange();
               }}
@@ -213,7 +233,9 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
               id="fill-color-input"
               value={fillColor}
               onChange={(e) => {
-                setFillColor(e.target.value === '#00000000' ? 'none' : e.target.value); // Handle transparent as 'none'
+                const newFillColor = e.target.value === '#00000000' ? 'none' : e.target.value;
+                setFillColor(newFillColor); 
+                fillColorRef.current = newFillColor;
                 handlePropertyChange();
               }}
               className="w-16 h-8 p-1"
@@ -222,8 +244,9 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
             <Input
               value={fillColor}
               onChange={(e) => {
-                const value = e.target.value === '#00000000' ? 'none' : e.target.value;
-                setFillColor(value);
+                const newFillColor = e.target.value === '#00000000' ? 'none' : e.target.value;
+                setFillColor(newFillColor); 
+                fillColorRef.current = newFillColor;
                 handlePropertyChange();
               }}
               className="text-xs flex-1 h-8"
