@@ -126,7 +126,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           e.preventDefault();
         } else if (e.button === 0) {
           // Left mouse button - check if clicking on canvas background (not on elements) for drag panning
-          if ((e.target as SVGElement).nodeName === 'svg' || e.target === containerRef.current) {
+          if ((e.target as SVGElement).nodeName === 'svg' || (e.target as SVGAElement).parentElement?.id === "grid" || e.target === containerRef.current) {
             isDraggingRef.current = true;
             const vb = draw.viewbox();
             startPanXRef.current = vb.x;
@@ -184,14 +184,10 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           let clickedOnElement = false;
           let currentTarget = target as HTMLElement;
           let elementId: string | null = null;
-          let isOnGrid = false; // Track if the click was on the grid
 
           // Traverse up the DOM tree to find an element with the 'element' class
           // Also check if we clicked on the grid group itself
           while (currentTarget && currentTarget !== draw.node as Node) {
-            if (currentTarget.id === 'grid') {
-              isOnGrid = true;
-            }
             if (currentTarget.classList && currentTarget.classList.contains('element') && currentTarget.id) {
               clickedOnElement = true;
               elementId = currentTarget.id;
@@ -212,11 +208,9 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           } else {
             // Clicked on canvas background or grid - place primitive if tool is active, otherwise deselect
             if (target === draw.node as unknown as HTMLElement || 
-                draw.node.contains(target as Node) || 
-                isOnGrid) {
+                draw.node.contains(target as Node)) {
               // Mouse up was on canvas background without significant movement
               const activeTool = currentToolRef.current;
-              console.log("aboba");
               if (activeTool) {
                 // Place a primitive if a tool is active
                 placePrimitive(e, activeTool);
@@ -479,7 +473,6 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
       }));
     }
 
-    console.log(`${activeTool} element created at (${cursorPt.x}, ${cursorPt.y})`);
   };
 
   // Draw grid to cover the entire visible area plus some padding for panning
