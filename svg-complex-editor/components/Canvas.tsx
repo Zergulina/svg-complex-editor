@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { SVG, Svg } from '@svgdotjs/svg.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ interface CanvasElement {
   x: number;
   y: number;
   zoneProperties?: ZoneProperties; // Add zone properties to canvas elements
+  properties?: any; // Store all properties for the element
 }
 
 type CanvasState = {
@@ -38,6 +39,8 @@ type CanvasState = {
 interface CanvasProps {
   onSelectionChange: (elementId: string | null) => void;
   onCanvasChange: (state: CanvasState) => void;
+  onElementPropertiesChange: (elementId: string, properties: any) => void;
+  onUpdateElementProperties?: (func: (elementId: string, properties: any) => void) => void;
   currentTool: ToolType | null;
   zoneProperties?: ZoneProperties; // Add zone properties prop
 }
@@ -49,7 +52,7 @@ interface GridSettings {
   opacity: number;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, currentTool, zoneProperties }) => {
+const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, onElementPropertiesChange, onUpdateElementProperties, currentTool, zoneProperties }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<Svg>(null);
   const [canvasState, setCanvasState] = useState<CanvasState>({
@@ -314,7 +317,6 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
 
     // Find all elements and reset them to their original state
     (canvasGroup as any).each(function (this: any) {
-      console.log("aboba")
       const el = this;
       const elType = el.type || (el.node ? el.node.nodeName : 'unknown');
 
@@ -325,14 +327,17 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
             color: el.attr('data-original-stroke'),
             width: parseInt(el.attr('data-original-stroke-width')) || 2
           });
-
+          // Remove the temporary stored attributes after restoration
+          el.attr('data-original-stroke', null);
+          el.attr('data-original-stroke-width', null);
         }
         // If no original stroke was stored, the element was created with its original appearance and doesn't need changes
       } else if (elType === 'text') {
         // Restore original font from stored data
         if (el.attr('data-original-font')) {
           el.font({ fill: el.attr('data-original-font') });
-          // Remove the temporary stored attribute
+          // Remove the temporary stored attribute after restoration
+          el.attr('data-original-font', null);
         }
         // If no original font was stored, the element was created with its original appearance and doesn't need changes
       }
@@ -348,8 +353,6 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         const strokeObj = element.stroke() || {};
         const originalStroke = strokeObj || '#000';
         const originalStrokeWidth = strokeObj.width || 2;
-
-        console.log(element);
 
         // Store original values as attributes for later restoration
         element.attr({ 'data-original-stroke': originalStroke });
@@ -411,7 +414,11 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           type: 'wall',
           element: newElement,
           x: cursorPt.x,
-          y: cursorPt.y
+          y: cursorPt.y,
+          properties: {
+            borderColor: '#8B4513',
+            borderWidth: 2
+          }
         });
         break;
 
@@ -473,7 +480,15 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           element: newElement,
           x: cursorPt.x,
           y: cursorPt.y,
-          zoneProperties: zoneProps // Store the zone properties with the element
+          zoneProperties: zoneProps, // Store the zone properties with the element
+          properties: {
+            fillColor: zoneProps.fillColor,
+            borderColor: zoneProps.borderColor,
+            borderWidth: 2,
+            text: zoneProps.text,
+            type: zoneProps.type,
+            sides: zoneProps.sides
+          }
         });
         break;
 
@@ -492,7 +507,12 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           type: 'text',
           element: newElement,
           x: cursorPt.x,
-          y: cursorPt.y
+          y: cursorPt.y,
+          properties: {
+            text: 'Sample Text',
+            textColor: '#000',
+            fontSize: 16
+          }
         });
         break;
 
@@ -524,14 +544,24 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
             type: 'icon',
             element: newElement,
             x: cursorPt.x,
-            y: cursorPt.y
+            y: cursorPt.y,
+            properties: {
+              fillColor: '#FFD700',
+              borderColor: '#000',
+              borderWidth: 2
+            }
           },
           {
             id: iconText.attr('id'),
             type: 'icon-text',
             element: iconText,
             x: cursorPt.x - 5,
-            y: cursorPt.y - 9
+            y: cursorPt.y - 9,
+            properties: {
+              text: 'i',
+              textColor: '#000',
+              fontSize: 16
+            }
           }
         );
         break;
@@ -554,7 +584,13 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           type: 'background',
           element: newElement,
           x: cursorPt.x,
-          y: cursorPt.y
+          y: cursorPt.y,
+          properties: {
+            fillColor: '#f0f0f0',
+            opacity: 0.5,
+            borderColor: '#ccc',
+            borderWidth: 1
+          }
         });
         break;
     }
@@ -625,6 +661,92 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     }
   }, [canvasState.viewBox]);
 
+  // Update element properties
+  const updateElementProperties = (elementId: string, newProperties: any) => {
+    setCanvasState(prev => {
+      const updatedElements = prev.elements.map(element => {
+        if (element.id === elementId) {
+          // Update the actual SVG element
+          const svgElement = element.element;
+          if (svgElement) {
+            // Update different properties based on element type
+            if (element.type === 'zone' || element.type === 'wall' || element.type === 'icon' || element.type === 'background') {
+              // Update fill color if provided
+              if (newProperties.fillColor !== undefined) {
+                svgElement.fill(newProperties.fillColor);
+              }
+              
+              // Update stroke color if provided
+              if (newProperties.borderColor !== undefined) {
+                svgElement.stroke({ color: newProperties.borderColor });
+                // Update our stored original stroke value
+                svgElement.attr({ 'data-original-stroke': newProperties.borderColor });
+              }
+              
+              // Update stroke width if provided
+              if (newProperties.borderWidth !== undefined) {
+                const currentStroke = svgElement.stroke() || {};
+                svgElement.stroke({ 
+                  color: currentStroke.color || newProperties.borderColor || '#000000',
+                  width: newProperties.borderWidth 
+                });
+                // Update our stored original stroke width value
+                svgElement.attr({ 'data-original-stroke-width': newProperties.borderWidth.toString() });
+              }
+            } else if (element.type === 'text') {
+              // Update text content if provided
+              if (newProperties.text !== undefined) {
+                svgElement.text(newProperties.text);
+              }
+              
+              // Update text color if provided
+              if (newProperties.textColor !== undefined) {
+                svgElement.font({ fill: newProperties.textColor });
+                svgElement.attr({ 'data-original-font': newProperties.textColor });
+              }
+              
+              // Update font size if provided
+              if (newProperties.fontSize !== undefined) {
+                const currentFont = svgElement.font() || {};
+                svgElement.font({ 
+                  fill: currentFont.fill || newProperties.textColor || '#000000',
+                  size: newProperties.fontSize 
+                });
+              }
+            }
+          }
+          
+          // Update the stored properties in the element state
+          const updatedElement = {
+            ...element,
+            properties: { ...element.properties, ...newProperties },
+            zoneProperties: newProperties.type || newProperties.sides || newProperties.text 
+              ? { ...element.zoneProperties, ...newProperties } 
+              : element.zoneProperties
+          };
+          
+          // Notify parent component about the property change
+          onElementPropertiesChange?.(elementId, newProperties);
+          
+          return updatedElement;
+        }
+        return element;
+      });
+
+      return {
+        ...prev,
+        elements: updatedElements
+      };
+    });
+  };
+
+  // Expose the updateElementProperties function to parent components
+  useEffect(() => {
+    if (onUpdateElementProperties) {
+      onUpdateElementProperties(updateElementProperties);
+    }
+  }, [onUpdateElementProperties, updateElementProperties]);
+
   // Toggle grid visibility
   const toggleGrid = () => {
     setGridSettings(prev => ({ ...prev, enabled: !prev.enabled }));
@@ -644,7 +766,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   };
 
   return (
-    <div className="h-full">
+    <div className="h-full relative">
       {/* Canvas container */}
       <div
         ref={containerRef}

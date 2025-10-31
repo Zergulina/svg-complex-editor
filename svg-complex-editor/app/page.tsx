@@ -3,8 +3,9 @@
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Canvas from "@/components/Canvas";
+import PropertyPanel from "@/components/PropertyPanel";
 import { SidebarProvider, useSidebar } from "@/components/SidebarContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Undo2,
@@ -15,7 +16,7 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ZoneProperties } from "@/components/Canvas";
+import { ZoneProperties, CanvasElement } from "@/components/Canvas";
 
 // Toolbar state interface
 interface ToolbarState {
@@ -47,6 +48,13 @@ const HomePageContent = () => {
     canRedo: false,
     hasUnsavedChanges: false,
   });
+  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(null);
+  const updateElementProperties = useRef<(elementId: string, properties: any) => void>(null);
+
+  // Create a callback to pass the update function to Canvas
+  const setUpdateFunction = useCallback((func: (elementId: string, properties: any) => void) => {
+    updateElementProperties.current = func;
+  }, []);
 
   useEffect(() => {
     console.log(`hi from page ${zoneProperties.borderColor}`)
@@ -257,21 +265,50 @@ const HomePageContent = () => {
         />
         
         {/* Canvas Area */}
-        <main className="flex-1 overflow-hidden bg-muted">
+        <main className="flex-1 overflow-hidden bg-muted relative">
           <Canvas 
             onSelectionChange={(elementId) => {
               console.log("Element selected:", elementId);
-              // Update selection state if needed
+              if (elementId) {
+                // We'll update this once we have the elements data
+              } else {
+                setSelectedElement(null);
+              }
+            }}
+            onElementPropertiesChange={(elementId, properties) => {
+              console.log(`Updating properties for element ${elementId}:`, properties);
+              // This will be handled by the canvas directly
+            }}
+            onUpdateElementProperties={(func) => {
+              updateElementProperties.current = func;
             }}
             onCanvasChange={(state) => {
               // console.log("Canvas state changed:", state);
-              // Handle canvas state changes if needed
+              // Update selected element if one is selected
+              if (state.selectedElementId) {
+                const element = state.elements.find(el => el.id === state.selectedElementId);
+                if (element) {
+                  setSelectedElement(element);
+                }
+              } else {
+                setSelectedElement(null);
+              }
             }}
             currentTool={state.selectedTool as any}
             zoneProperties={zoneProperties}
           />
         </main>
       </div>
+      {/* Property Panel rendered at root level to avoid React rendering issues */}
+      <PropertyPanel 
+        selectedElement={selectedElement} 
+        onPropertiesChange={(id, properties) => {
+          console.log(`Property change for ${id}:`, properties);
+          // Call the canvas method to update the element
+          updateElementProperties.current?.(id, properties);
+        }}
+        onClose={() => setSelectedElement(null)}
+      />
     </div>
   );
 };
