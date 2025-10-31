@@ -14,9 +14,10 @@ import { useState, useEffect } from "react";
 
 interface ZoneComponentProps {
   onSelect: (type: string, properties: any) => void;
+  isSelected?: boolean;
 }
 
-const ZoneComponent = ({ onSelect }: ZoneComponentProps) => {
+const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
   const [zoneType, setZoneType] = useState<'polygon' | 'ellipse'>('polygon');
   const [sides, setSides] = useState(4);
   const [sidesString, setSidesString] = useState('4'); // Track the input value as string
@@ -165,6 +166,19 @@ const ZoneComponent = ({ onSelect }: ZoneComponentProps) => {
             aria-label="Zone label text"
           />
         </div>
+        
+        {/* Zone Selection Button */}
+        <Button
+          variant={isSelected ? "default" : "outline"}
+          size="sm"
+          className="h-9 flex flex-col items-center justify-center"
+          onClick={() => handlePropertyChange()}
+          role="radio"
+          aria-checked={!!isSelected}
+          aria-label="Select zone component"
+        >
+          Выбрать
+        </Button>
       </CardContent>
     </Card>
   );

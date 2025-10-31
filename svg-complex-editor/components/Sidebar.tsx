@@ -216,7 +216,6 @@ const Sidebar = ({
         ...component,
         properties: { ...component.properties, ...properties }
       };
-      setSelectedComponent('text-basic');
       onComponentSelect(updatedComponent);
     }
   };
@@ -377,20 +376,35 @@ const Sidebar = ({
           >
             {state.activeTab === 'primitives' && (
               <>
-                <WallComponent onSelect={handleWallSelect} />
+                <WallComponent 
+                  onSelect={handleWallSelect} 
+                  isSelected={state.selectedTool === 'wall'}
+                />
                 
-                <ZoneComponent onSelect={handleZoneSelect} />
+                <ZoneComponent 
+                  onSelect={handleZoneSelect} 
+                  isSelected={state.selectedTool === 'zone-polygon' || state.selectedTool === 'zone-ellipse'}
+                />
                 
-                <TextComponent onSelect={handleTextSelect} />
+                <TextComponent 
+                  onSelect={handleTextSelect} 
+                  isSelected={state.selectedTool === 'text-basic'}
+                />
               </>
             )}
 
             {state.activeTab === 'icons' && (
-              <IconComponent onSelect={handleIconSelect} />
+              <IconComponent 
+                onSelect={handleIconSelect} 
+                isSelected={state.selectedTool && state.selectedTool.startsWith('icon-')}
+              />
             )}
 
             {state.activeTab === 'backgrounds' && (
-              <BackgroundImageComponent onSelect={handleBackgroundSelect} />
+              <BackgroundImageComponent 
+                onSelect={handleBackgroundSelect} 
+                isSelected={state.selectedTool && state.selectedTool.startsWith('bg-')}
+              />
             )}
           </div>
         </div>

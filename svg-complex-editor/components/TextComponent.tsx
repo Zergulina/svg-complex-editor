@@ -11,9 +11,10 @@ import { useState } from "react";
 
 interface TextComponentProps {
   onSelect: (properties: any) => void;
+  isSelected?: boolean;
 }
 
-const TextComponent = ({ onSelect }: TextComponentProps) => {
+const TextComponent = ({ onSelect, isSelected }: TextComponentProps) => {
   const [textFont, setTextFont] = useState('Arial');
   const [textContent, setTextContent] = useState('Название зоны');
   const [textColor, setTextColor] = useState('#000000');
@@ -59,7 +60,6 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
             onChange={(e) => setTextContent(e.target.value)}
             className="text-xs mt-1 h-8"
             placeholder="Enter text"
-            onInput={handlePropertyChange}
             aria-label="Text content input"
           />
         </div>
@@ -69,10 +69,7 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
           <Label htmlFor="text-font-family-select" className="text-xs">Шрифт</Label>
           <Select 
             value={textFont} 
-            onValueChange={(value) => {
-              setTextFont(value);
-              handlePropertyChange();
-            }}
+            onValueChange={setTextFont}
           >
             <SelectTrigger className="w-full h-8 text-xs select-none mt-[4px]" aria-label="Выбор шрифта" id="text-font-family-select">
               <SelectValue />
@@ -96,25 +93,32 @@ const TextComponent = ({ onSelect }: TextComponentProps) => {
               type="color"
               id="text-color-input"
               value={textColor}
-              onChange={(e) => {
-                setTextColor(e.target.value);
-                handlePropertyChange();
-              }}
+              onChange={(e) => setTextColor(e.target.value)}
               className="w-16 h-8 p-1"
               aria-label="Text color picker"
             />
             <Input
               value={textColor}
-              onChange={(e) => {
-                setTextColor(e.target.value);
-                handlePropertyChange();
-              }}
+              onChange={(e) => setTextColor(e.target.value)}
               className="text-xs flex-1 h-8"
               placeholder="#000000"
               aria-label="Text color hex value"
             />
           </div>
         </div>
+
+        {/* Text Selection Button */}
+        <Button
+          variant={isSelected ? "default" : "outline"}
+          size="sm"
+          className="h-9 flex flex-col items-center justify-center"
+          onClick={handlePropertyChange}
+          role="radio"
+          aria-checked={!!isSelected}
+          aria-label="Select text component"
+        >
+          Выбрать
+        </Button>
       </CardContent>
     </Card>
   );

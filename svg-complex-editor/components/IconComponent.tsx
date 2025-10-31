@@ -9,6 +9,7 @@ import { useState } from "react";
 
 interface IconComponentProps {
   onSelect: (icon: any) => void;
+  isSelected?: boolean;
 }
 
 interface Icon {
@@ -17,9 +18,10 @@ interface Icon {
   component: React.ReactNode;
 }
 
-const IconComponent = ({ onSelect }: IconComponentProps) => {
+const IconComponent = ({ onSelect, isSelected }: IconComponentProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('vegetables');
+  const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
 
   // Sample icon data
   const icons: Icon[] = [
@@ -64,11 +66,15 @@ const IconComponent = ({ onSelect }: IconComponentProps) => {
             {filteredIcons.map((icon) => (
               <Button
                 key={icon.id}
-                variant="outline"
+                variant={selectedIconId === icon.id ? "default" : "outline"}
                 size="sm"
                 className="h-14 flex flex-col items-center justify-center gap-1 p-1"
-                onClick={() => onSelect({ ...icon, category: activeCategory })}
+                onClick={() => {
+                  setSelectedIconId(icon.id);
+                  onSelect({ ...icon, category: activeCategory });
+                }}
                 aria-label={icon.name}
+                aria-checked={selectedIconId === icon.id}
               >
                 <div className="flex items-center justify-center h-5 w-5" aria-hidden="true">
                   {icon.component}
@@ -78,6 +84,7 @@ const IconComponent = ({ onSelect }: IconComponentProps) => {
             ))}
           </div>
         </ScrollArea>
+        
       </CardContent>
     </Card>
   );

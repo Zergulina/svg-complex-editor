@@ -18,6 +18,7 @@ import { useState, useRef } from "react";
 
 interface BackgroundImageComponentProps {
   onSelect: (properties: any) => void;
+  isSelected?: boolean;
 }
 
 interface BackgroundImage {
@@ -29,9 +30,9 @@ interface BackgroundImage {
   opacity: number;
 }
 
-const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) => {
+const BackgroundImageComponent = ({ onSelect, isSelected }: BackgroundImageComponentProps) => {
   const [images, setImages] = useState<BackgroundImage[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +49,7 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
           opacity: 1
         };
         setImages([...images, newImage]);
-        setSelectedImage(newImage.id);
+        setSelectedImageId(newImage.id);
         onSelect(newImage);
       };
       reader.readAsDataURL(file);
@@ -57,12 +58,12 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
 
   const handleRemoveImage = (id: string) => {
     setImages(images.filter(img => img.id !== id));
-    if (selectedImage === id) {
-      setSelectedImage(null);
+    if (selectedImageId === id) {
+      setSelectedImageId(null);
     }
   };
 
-  const selectedImg = images.find(img => img.id === selectedImage);
+  const selectedImg = images.find(img => img.id === selectedImageId);
 
   return (
     <Card role="region" aria-labelledby="bg-image-component-title" className="gap-0 p-2 h-full flex flex-col">
@@ -110,22 +111,22 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
                     <div 
                       key={img.id} 
                       className={`border rounded p-1 cursor-pointer flex flex-col items-center ${
-                        selectedImage === img.id ? 'border-primary bg-primary/10' : ''
+                        selectedImageId === img.id ? 'border-primary bg-primary/10' : ''
                       }`}
                       onClick={() => {
-                        setSelectedImage(img.id);
+                        setSelectedImageId(img.id);
                         onSelect(img);
                       }}
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
-                          setSelectedImage(img.id);
+                          setSelectedImageId(img.id);
                           onSelect(img);
                         }
                       }}
                       role="button"
                       aria-label={`Select ${img.name}`}
-                      aria-selected={selectedImage === img.id}
+                      aria-selected={selectedImageId === img.id}
                     >
                       <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
                         <img 
@@ -157,6 +158,7 @@ const BackgroundImageComponent = ({ onSelect }: BackgroundImageComponentProps) =
             </div>
           </ScrollArea>
         </div>
+        
       </CardContent>
     </Card>
   );

@@ -17,9 +17,10 @@ import { useState } from "react";
 
 interface WallComponentProps {
   onSelect: ( properties: any) => void;
+  isSelected?: boolean;
 }
 
-const WallComponent = ({ onSelect }: WallComponentProps) => {
+const WallComponent = ({ onSelect, isSelected }: WallComponentProps) => {
 
   const handleWallTypeSelect = () => {
     const properties = null;
@@ -36,12 +37,12 @@ const WallComponent = ({ onSelect }: WallComponentProps) => {
       </CardHeader>
       <CardContent className="p-2 space-y-3">
         <Button
-          variant="outline"
+          variant={isSelected ? "default" : "outline"}
           size="sm"
           className="h-9 flex flex-col items-center justify-center"
           onClick={() => handleWallTypeSelect()}
           role="radio"
-          aria-checked={false}
+          aria-checked={!!isSelected}
           aria-label="Line wall">
             Выбрать
         </Button>
