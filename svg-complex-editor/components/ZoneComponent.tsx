@@ -22,6 +22,8 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
   const [sides, setSides] = useState(4);
   const [sidesString, setSidesString] = useState('4'); // Track the input value as string
   const [zoneText, setZoneText] = useState('Zone');
+  const [borderColor, setBorderColor] = useState('#228B22'); // Default green for zone border
+  const [fillColor, setFillColor] = useState('none'); // Default no fill
 
   // Initialize sidesString when component mounts
   useEffect(() => {
@@ -45,6 +47,8 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
       type,
       sides: type === 'polygon' ? (sidesString !== '' ? parseInt(sidesString) || 4 : 4) : undefined,
       text: zoneText,
+      borderColor,
+      fillColor,
     });
   };
 
@@ -54,6 +58,8 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
       type: zoneType,
       sides: zoneType === 'polygon' ? validSides : undefined,
       text: zoneText,
+      borderColor,
+      fillColor,
     });
   };
 
@@ -165,6 +171,63 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
             onInput={handlePropertyChange}
             aria-label="Zone label text"
           />
+        </div>
+
+        {/* Border Color */}
+        <div>
+          <Label htmlFor="border-color-input" className="text-xs">Цвет контура</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <Input
+              type="color"
+              id="border-color-input"
+              value={borderColor}
+              onChange={(e) => {
+                setBorderColor(e.target.value);
+                handlePropertyChange();
+              }}
+              className="w-16 h-8 p-1"
+              aria-label="Border color picker"
+            />
+            <Input
+              value={borderColor}
+              onChange={(e) => {
+                setBorderColor(e.target.value);
+                handlePropertyChange();
+              }}
+              className="text-xs flex-1 h-8"
+              placeholder="#000000"
+              aria-label="Border color hex value"
+            />
+          </div>
+        </div>
+
+        {/* Fill Color */}
+        <div>
+          <Label htmlFor="fill-color-input" className="text-xs">Цвет заливки</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <Input
+              type="color"
+              id="fill-color-input"
+              value={fillColor}
+              onChange={(e) => {
+                setFillColor(e.target.value === '#00000000' ? 'none' : e.target.value); // Handle transparent as 'none'
+                handlePropertyChange();
+              }}
+              className="w-16 h-8 p-1"
+              aria-label="Fill color picker"
+            />
+            <Input
+              value={fillColor}
+              onChange={(e) => {
+                const value = e.target.value === '#00000000' ? 'none' : e.target.value;
+                setFillColor(value);
+                handlePropertyChange();
+              }}
+              className="text-xs flex-1 h-8"
+              placeholder="none"
+              aria-label="Fill color hex value"
+            />
+          </div>
         </div>
         
         {/* Zone Selection Button */}
