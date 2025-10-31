@@ -23,6 +23,7 @@ import ZoneComponent from "./ZoneComponent";
 import TextComponent from "./TextComponent";
 import IconComponent from "./IconComponent";
 import BackgroundImageComponent from "./BackgroundImageComponent";
+import { ZoneProperties } from "./Canvas";
 
 interface ComponentItem {
   id: string;
@@ -45,13 +46,15 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   onTabChange: (tab: 'primitives' | 'backgrounds' | 'zones' | 'icons') => void;
   onComponentSelect: (component: ComponentItem) => void;
+  onZonePropertiesChange?: (properties: ZoneProperties) => void; // Add function to update zone properties
 }
 
 const Sidebar = ({ 
   state, 
   onToggleCollapse, 
   onTabChange,
-  onComponentSelect 
+  onComponentSelect,
+  onZonePropertiesChange
 }: SidebarProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
@@ -206,6 +209,22 @@ const Sidebar = ({
       };
       setSelectedComponent(componentType);
       onComponentSelect(updatedComponent);
+    }
+    
+    // Update zone properties if the callback is provided
+    if (onZonePropertiesChange) {
+      // Ensure properties has the correct structure for ZoneProperties
+      const zoneProps: ZoneProperties = {
+        type: type as 'polygon' | 'ellipse',
+        sides: properties.sides,
+        text: properties.text,
+        borderColor: properties.borderColor || '#228B22',
+        fillColor: properties.fillColor || 'none'
+      };
+
+      console.log(`hi from sidebar ${zoneProps.borderColor}`);
+      
+      onZonePropertiesChange(zoneProps);
     }
   };
 

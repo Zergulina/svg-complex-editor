@@ -61,6 +61,7 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
       borderColor,
       fillColor,
     });
+    console.log(`zone property changed; border color = ${borderColor}`)
   };
 
   return (
@@ -183,6 +184,7 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
               value={borderColor}
               onChange={(e) => {
                 setBorderColor(e.target.value);
+                console.log(`border color 1: ${borderColor}`);
                 handlePropertyChange();
               }}
               className="w-16 h-8 p-1"
@@ -192,6 +194,7 @@ const ZoneComponent = ({ onSelect, isSelected }: ZoneComponentProps) => {
               value={borderColor}
               onChange={(e) => {
                 setBorderColor(e.target.value);
+                console.log(`border color 2: ${borderColor}`);
                 handlePropertyChange();
               }}
               className="text-xs flex-1 h-8"

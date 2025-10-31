@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Canvas from "@/components/Canvas";
 import { SidebarProvider, useSidebar } from "@/components/SidebarContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Undo2,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { ZoneProperties } from "@/components/Canvas";
 
 // Toolbar state interface
 interface ToolbarState {
@@ -36,11 +37,20 @@ interface ComponentItem {
 const HomePageContent = () => {
   const { state, dispatch } = useSidebar();
   const [content, setContent] = useState("Welcome to SVG Complex Editor");
+  const [zoneProperties, setZoneProperties] = useState<ZoneProperties>({
+    type: 'ellipse',
+    borderColor: '#228B22',
+    fillColor: 'none'
+  });
   const [toolbarState, setToolbarState] = useState<ToolbarState>({
     canUndo: true,
     canRedo: false,
     hasUnsavedChanges: false,
   });
+
+  useEffect(() => {
+    console.log(`hi from page ${zoneProperties.borderColor}`)
+  }, [zoneProperties]);
 
   const handleNewCanvas = () => {
     setContent("New canvas created");
@@ -243,6 +253,7 @@ const HomePageContent = () => {
           onToggleCollapse={handleToggleCollapse}
           onTabChange={handleTabChange}
           onComponentSelect={handleComponentSelect}
+          onZonePropertiesChange={(properties: ZoneProperties) => {setZoneProperties(properties); console.log(properties)}}
         />
         
         {/* Canvas Area */}
@@ -257,6 +268,7 @@ const HomePageContent = () => {
               // Handle canvas state changes if needed
             }}
             currentTool={state.selectedTool as any}
+            zoneProperties={zoneProperties}
           />
         </main>
       </div>

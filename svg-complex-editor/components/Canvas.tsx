@@ -9,6 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Define types for our primitives
 type PrimitiveType = 'wall' | 'zone' | 'text' | 'icon' | 'background';
+export type ToolType = 'wall' | 'zone' | 'zone-polygon' | 'zone-ellipse' | 'text' | 'icon' | 'background';
+
+export interface ZoneProperties {
+  type: 'polygon' | 'ellipse';
+  sides?: number;
+  text?: string;
+  borderColor: string;
+  fillColor: string;
+}
 
 interface CanvasElement {
   id: string;
@@ -16,6 +25,7 @@ interface CanvasElement {
   element: any;
   x: number;
   y: number;
+  zoneProperties?: ZoneProperties; // Add zone properties to canvas elements
 }
 
 type CanvasState = {
@@ -28,7 +38,8 @@ type CanvasState = {
 interface CanvasProps {
   onSelectionChange: (elementId: string | null) => void;
   onCanvasChange: (state: CanvasState) => void;
-  currentTool: PrimitiveType | null;
+  currentTool: ToolType | null;
+  zoneProperties?: ZoneProperties; // Add zone properties prop
 }
 
 interface GridSettings {
@@ -38,7 +49,7 @@ interface GridSettings {
   opacity: number;
 }
 
-const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, currentTool }) => {
+const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, currentTool, zoneProperties }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<Svg>(null);
   const [canvasState, setCanvasState] = useState<CanvasState>({
@@ -277,10 +288,16 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   }, [canvasState.viewBox]);
 
   // Create a ref to track the current tool to avoid dependency issues in effects
-  const currentToolRef = useRef<PrimitiveType | null>(null);
+  const currentToolRef = useRef<ToolType | null>(null);
   useEffect(() => {
     currentToolRef.current = currentTool;
   }, [currentTool]);
+
+  // Create a ref to track the current zone properties to avoid closure issues
+  const zonePropertiesRef = useRef<ZoneProperties | undefined>();
+  useEffect(() => {
+    zonePropertiesRef.current = zoneProperties;
+  }, [zoneProperties]);
 
   // Update canvas state when it changes
   useEffect(() => {
@@ -352,7 +369,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   };
 
   // Function to place a primitive at the mouse position
-  const placePrimitive = (e: MouseEvent, activeTool: PrimitiveType) => {
+  const placePrimitive = (e: MouseEvent, activeTool: ToolType) => {
     if (!svgRef.current) return;
 
     // Get canvas group to add elements to
@@ -371,7 +388,6 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
     // Create the appropriate primitive based on the current tool
     let newElements: CanvasElement[] = [];
     let newElement: any = null;
-    let elementType: PrimitiveType | 'icon-text' = activeTool;
 
     switch (activeTool) {
       case 'wall':
@@ -393,16 +409,56 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         break;
 
       case 'zone':
-        // Create placeholder for zone element (an ellipse)
-        newElement = (canvasGroup as any).ellipse(80, 60).move(cursorPt.x - 40, cursorPt.y - 30)
-          .fill('none').stroke({ width: 2, color: '#228B22' }).addClass('element').attr({ id: `zone-${Date.now()}` });
+      case 'zone-polygon':
+      case 'zone-ellipse':
+        // Create zone element with user-selected properties
+        // Use zoneProperties if available (from ZoneComponent), otherwise default values
+        console.log(`hi from canvas ${zonePropertiesRef.current?.borderColor}`);
+        const zoneProps: ZoneProperties = zonePropertiesRef.current ? {...zonePropertiesRef.current} : {
+          type: 'ellipse',
+          borderColor: '#228B22',
+          fillColor: 'none'
+        };
+
+        // Override the type based on the active tool if specifically set
+        const effectiveType = activeTool === 'zone-polygon' ? 'polygon' : 
+                             activeTool === 'zone-ellipse' ? 'ellipse' : 
+                             zoneProps.type;
+
+        if (effectiveType === 'polygon' && zoneProps.sides !== undefined) {
+          // Create polygon zone
+          const sides = zoneProps.sides;
+          const radius = 40; // Radius for the polygon
+          const points = [];
+          
+          for (let i = 0; i < sides; i++) {
+            const angle = (i * 2 * Math.PI) / sides - Math.PI / 2; // Start from top
+            const x = cursorPt.x + radius * Math.cos(angle);
+            const y = cursorPt.y + radius * Math.sin(angle);
+            points.push([x, y]);
+          }
+          
+          newElement = (canvasGroup as any).polygon(points)
+            .fill(zoneProps.fillColor)
+            .stroke({ width: 2, color: zoneProps.borderColor })
+            .addClass('element')
+            .attr({ id: `zone-${Date.now()}` });
+        } else {
+          // Create ellipse zone (default)
+          newElement = (canvasGroup as any).ellipse(80, 60).move(cursorPt.x - 40, cursorPt.y - 30)
+            .fill(zoneProps.fillColor)
+            .stroke({ width: 2, color: zoneProps.borderColor })
+            .addClass('element')
+            .attr({ id: `zone-${Date.now()}` });
+        }
 
         newElements.push({
           id: newElement.attr('id'),
           type: 'zone',
           element: newElement,
           x: cursorPt.x,
-          y: cursorPt.y
+          y: cursorPt.y,
+          zoneProperties: zoneProps // Store the zone properties with the element
         });
         break;
 
