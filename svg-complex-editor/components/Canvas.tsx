@@ -308,58 +308,61 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   const highlightElement = (elementId: string) => {
     if (!svgRef.current) return;
 
-    // Remove highlight from previously selected element
+    // Remove highlight from all elements and restore their original styles
     const canvasGroup = (svgRef.current as any).findOne('#canvas-elements');
     if (!canvasGroup) return;
 
-    // Find all elements that might be highlighted and remove highlight
+    // Find all elements and reset them to their original state
     (canvasGroup as any).each(function (this: any) {
+      console.log("aboba")
       const el = this;
       const elType = el.type || (el.node ? el.node.nodeName : 'unknown');
 
       if (['path', 'polygon', 'circle', 'ellipse', 'rect'].includes(elType)) {
-        // Reset to original stroke
+        // Restore original stroke from stored data
         if (el.attr('data-original-stroke')) {
           el.stroke({
             color: el.attr('data-original-stroke'),
             width: parseInt(el.attr('data-original-stroke-width')) || 2
           });
-          el.attr('data-original-stroke', null);
-          el.attr('data-original-stroke-width', null);
-        } else {
-          el.stroke({ color: '#000', width: 2 });
+
         }
+        // If no original stroke was stored, the element was created with its original appearance and doesn't need changes
       } else if (elType === 'text') {
-        // Reset text style if it was highlighted
+        // Restore original font from stored data
         if (el.attr('data-original-font')) {
           el.font({ fill: el.attr('data-original-font') });
-          el.attr('data-original-font', null);
-        } else {
-          el.font({ fill: '#000' });
+          // Remove the temporary stored attribute
         }
+        // If no original font was stored, the element was created with its original appearance and doesn't need changes
       }
     });
 
-    // Add highlight to selected element
+    // Now highlight the selected element
     const element: any = (canvasGroup as any).findOne('#' + elementId);
     if (element) {
       const elementType = element.type || (element.node ? element.node.nodeName : 'unknown');
 
       if (['path', 'polygon', 'circle', 'ellipse', 'rect'].includes(elementType)) {
-        // Store original stroke to restore later
+        // Store the current stroke properties before changing them (these should be the original values now)
         const strokeObj = element.stroke() || {};
-        const originalStroke = strokeObj.color || '#000';
+        const originalStroke = strokeObj || '#000';
         const originalStrokeWidth = strokeObj.width || 2;
 
+        console.log(element);
+
+        // Store original values as attributes for later restoration
         element.attr({ 'data-original-stroke': originalStroke });
         element.attr({ 'data-original-stroke-width': originalStrokeWidth.toString() });
 
         // Apply highlight
         element.stroke({ color: '#ff0000', width: 4 });
       } else if (elementType === 'text') {
-        // Store original font to restore later
+        // Store the current font properties before changing them
         const fontObj = element.font() || {};
         const originalFont = fontObj.fill || '#000';
+
+        // Store original value as attribute for later restoration
         element.attr({ 'data-original-font': originalFont });
 
         // Apply highlight to text
@@ -397,7 +400,11 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
           [cursorPt.x + 40, cursorPt.y - 5],
           [cursorPt.x + 40, cursorPt.y + 5],
           [cursorPt.x - 40, cursorPt.y + 5]
-        ]).fill('none').stroke({ width: 2, color: '#8B4513' }).addClass('element').attr({ id: `wall-${Date.now()}` });
+        ]).fill('none').stroke({ width: 2, color: '#8B4513' }).addClass('element').attr({ 
+          id: `wall-${Date.now()}`,
+          'data-original-stroke': '#8B4513',
+          'data-original-stroke-width': '2'
+        });
 
         newElements.push({
           id: newElement.attr('id'),
@@ -442,14 +449,22 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
             .fill(zoneProps.fillColor)
             .stroke({ width: 2, color: zoneProps.borderColor })
             .addClass('element')
-            .attr({ id: `zone-${Date.now()}` });
+            .attr({ 
+              id: `zone-${Date.now()}`,
+              'data-original-stroke': zoneProps.borderColor,
+              'data-original-stroke-width': '2'
+            });
         } else {
           // Create ellipse zone (default)
           newElement = (canvasGroup as any).ellipse(80, 60).move(cursorPt.x - 40, cursorPt.y - 30)
             .fill(zoneProps.fillColor)
             .stroke({ width: 2, color: zoneProps.borderColor })
             .addClass('element')
-            .attr({ id: `zone-${Date.now()}` });
+            .attr({ 
+              id: `zone-${Date.now()}`,
+              'data-original-stroke': zoneProps.borderColor,
+              'data-original-stroke-width': '2'
+            });
         }
 
         newElements.push({
@@ -465,7 +480,12 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
       case 'text':
         // Create placeholder for text element
         newElement = (canvasGroup as any).text('Sample Text').move(cursorPt.x, cursorPt.y)
-          .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `text-${Date.now()}` });
+          .font({ size: 16, family: 'Arial', fill: '#000' })
+          .addClass('element')
+          .attr({ 
+            id: `text-${Date.now()}`,
+            'data-original-font': '#000'
+          });
 
         newElements.push({
           id: newElement.attr('id'),
@@ -479,11 +499,23 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
       case 'icon':
         // Create placeholder for icon element (a circle with an icon-like appearance)
         newElement = (canvasGroup as any).circle(30).move(cursorPt.x - 15, cursorPt.y - 15)
-          .fill('#FFD700').stroke({ width: 2, color: '#000' }).addClass('element').attr({ id: `icon-${Date.now()}` });
+          .fill('#FFD700')
+          .stroke({ width: 2, color: '#000' })
+          .addClass('element')
+          .attr({ 
+            id: `icon-${Date.now()}`,
+            'data-original-stroke': '#000',
+            'data-original-stroke-width': '2'
+          });
 
         // Add a small 'i' inside the circle to represent an icon
         const iconText = (canvasGroup as any).text('i').move(cursorPt.x - 5, cursorPt.y - 9)
-          .font({ size: 16, family: 'Arial' }).addClass('element').attr({ id: `icon-text-${Date.now()}` });
+          .font({ size: 16, family: 'Arial', fill: '#000' })
+          .addClass('element')
+          .attr({ 
+            id: `icon-text-${Date.now()}`,
+            'data-original-font': '#000'
+          });
 
         // Add both elements to the state
         newElements.push(
@@ -507,8 +539,15 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
       case 'background':
         // For now, just add a background-like rectangle that covers a portion of the canvas
         newElement = (canvasGroup as any).rect(200, 150).move(cursorPt.x - 100, cursorPt.y - 75)
-          .fill('#f0f0f0').stroke({ width: 1, color: '#ccc' }).opacity(0.5)
-          .addClass('element').attr({ id: `bg-${Date.now()}` });
+          .fill('#f0f0f0')
+          .stroke({ width: 1, color: '#ccc' })
+          .opacity(0.5)
+          .addClass('element')
+          .attr({ 
+            id: `bg-${Date.now()}`,
+            'data-original-stroke': '#ccc',
+            'data-original-stroke-width': '1'
+          });
 
         newElements.push({
           id: newElement.attr('id'),
