@@ -246,31 +246,18 @@ const HomePageContent = () => {
         />
         
         {/* Canvas Area */}
-        <main className="flex-1 overflow-auto p-4 bg-muted">
-          <div className="max-w-6xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4">{content}</h1>
-            <p>Use the sidebar to select components to add to your canvas.</p>
-            {state.selectedTool && (
-              <div className="mt-4 p-3 bg-background rounded-md border">
-                <p className="text-sm"><span className="font-medium">Selected Tool:</span> {state.selectedTool}</p>
-              </div>
-            )}
-          </div>
-          
-          {/* Canvas component */}
-          <div className="mt-4 h-[600px]">
-            <Canvas 
-              onSelectionChange={(elementId) => {
-                console.log("Element selected:", elementId);
-                // Update selection state if needed
-              }}
-              onCanvasChange={(state) => {
-                // console.log("Canvas state changed:", state);
-                // Handle canvas state changes if needed
-              }}
-              currentTool={state.selectedTool as any}
-            />
-          </div>
+        <main className="flex-1 overflow-hidden bg-muted">
+          <Canvas 
+            onSelectionChange={(elementId) => {
+              console.log("Element selected:", elementId);
+              // Update selection state if needed
+            }}
+            onCanvasChange={(state) => {
+              // console.log("Canvas state changed:", state);
+              // Handle canvas state changes if needed
+            }}
+            currentTool={state.selectedTool as any}
+          />
         </main>
       </div>
     </div>

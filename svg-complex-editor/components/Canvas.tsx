@@ -549,68 +549,12 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="h-full">
       {/* Canvas container */}
       <div
         ref={containerRef}
-        className="flex-1 bg-white border rounded-lg overflow-hidden w-full"
-        style={{ minHeight: '500px' }}
+        className="h-full bg-white border overflow-hidden w-full"
       />
-
-      {/* Grid Controls */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Grid Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Button
-              onClick={toggleGrid}
-              variant={gridSettings.enabled ? "default" : "outline"}
-              size="sm"
-            >
-              {gridSettings.enabled ? "Hide Grid" : "Show Grid"}
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="grid-spacing">Spacing: {gridSettings.spacing}px</Label>
-            <Input
-              id="grid-spacing"
-              type="range"
-              min="10"
-              max="100"
-              value={gridSettings.spacing}
-              onChange={handleGridSpacingChange}
-              className="w-full"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="grid-color">Color</Label>
-            <Input
-              id="grid-color"
-              type="color"
-              value={gridSettings.color}
-              onChange={handleGridColorChange}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="grid-opacity">Opacity: {Math.round(gridSettings.opacity * 100)}%</Label>
-            <Input
-              id="grid-opacity"
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={gridSettings.opacity}
-              onChange={handleGridOpacityChange}
-              className="w-full"
-            />
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
