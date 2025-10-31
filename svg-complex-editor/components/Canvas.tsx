@@ -146,8 +146,12 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
         // Handle panning with middle mouse or space+drag
         if (isPanningRef.current || isDraggingRef.current) {
           const rect = draw.node.getBoundingClientRect();
-          const dx = (e.clientX - startMouseXRef.current) * (draw.viewbox().width / rect.width);
-          const dy = (e.clientY - startMouseYRef.current) * (draw.viewbox().height / rect.height);
+          
+          // Use a consistent scale factor for both axes to ensure uniform dragging
+          // Calculate the average of both ratios to maintain consistent speed regardless of canvas aspect ratio
+          const avgRatio = ((draw.viewbox().width / rect.width) + (draw.viewbox().height / rect.height)) / 2;
+          const dx = (e.clientX - startMouseXRef.current) * avgRatio;
+          const dy = (e.clientY - startMouseYRef.current) * avgRatio;
 
           draw.node.style.cursor = 'grabbing';
 
@@ -277,11 +281,6 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, curr
   useEffect(() => {
     currentToolRef.current = currentTool;
   }, [currentTool]);
-
-  // Update canvas state when it changes
-  useEffect(() => {
-    onCanvasChange(canvasState);
-  }, [canvasState, onCanvasChange]);
 
   // Update canvas state when it changes
   useEffect(() => {
