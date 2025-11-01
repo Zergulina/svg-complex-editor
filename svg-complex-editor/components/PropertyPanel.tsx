@@ -13,6 +13,7 @@ interface CanvasElement {
   id: string;
   type: string;
   zoneProperties?: any;
+  properties?: any;
   x?: number;
   y?: number;
 }
@@ -25,11 +26,7 @@ interface PropertyPanelProps {
 
 const PropertyPanel = ({ selectedElement, onPropertiesChange, onClose }: PropertyPanelProps) => {
   if (!selectedElement) {
-    return (
-      <div className="p-4 text-gray-500 text-center">
-        Select an element to edit its properties
-      </div>
-    );
+    return null; // Don't render anything when no element is selected
   }
 
   // Initialize properties based on the element's stored properties and zoneProperties
@@ -358,14 +355,14 @@ const PropertyPanel = ({ selectedElement, onPropertiesChange, onClose }: Propert
     <Card className="w-64 absolute top-4 right-4 z-10 shadow-lg">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-sm">Properties</CardTitle>
+          <CardTitle className="text-sm select-none">Properties</CardTitle>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onClose}
             aria-label="Close properties panel"
           >
-            ×
+            ✕
           </Button>
         </div>
         <Separator />

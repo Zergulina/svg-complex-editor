@@ -126,7 +126,6 @@ const HomePageContent = () => {
   };
 
   const handleComponentSelect = (component: ComponentItem) => {
-    console.log("Component selected:", component);
     dispatch({ type: 'SET_SELECTED_TOOL', payload: component.id });
     // Here we would notify the canvas of the new tool selection
     // For now, just show a toast
@@ -288,6 +287,7 @@ const HomePageContent = () => {
               if (state.selectedElementId) {
                 const element = state.elements.find(el => el.id === state.selectedElementId);
                 if (element) {
+                  console.log(element.id);
                   setSelectedElement(element);
                 }
               } else {
@@ -300,15 +300,17 @@ const HomePageContent = () => {
         </main>
       </div>
       {/* Property Panel rendered at root level to avoid React rendering issues */}
-      <PropertyPanel 
-        selectedElement={selectedElement} 
-        onPropertiesChange={(id, properties) => {
-          console.log(`Property change for ${id}:`, properties);
-          // Call the canvas method to update the element
-          updateElementProperties.current?.(id, properties);
-        }}
-        onClose={() => setSelectedElement(null)}
-      />
+      {selectedElement && (
+        <PropertyPanel 
+          selectedElement={selectedElement} 
+          onPropertiesChange={(id, properties) => {
+            console.log(`Property change for ${id}:`, properties);
+            // Call the canvas method to update the element
+            updateElementProperties.current?.(id, properties);
+          }}
+          onClose={() => {setSelectedElement(null); }}
+        />
+      )}
     </div>
   );
 };
