@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ZoneProperties, CanvasElement } from "@/components/Canvas";
-
+import { ZoneProperties, CanvasElement } from "@/components/Canvas"; 
 // Toolbar state interface
 interface ToolbarState {
   canUndo: boolean;

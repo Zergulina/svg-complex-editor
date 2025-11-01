@@ -19,7 +19,7 @@ export interface ZoneProperties {
   fillColor: string;
 }
 
-interface CanvasElement {
+export interface CanvasElement {
   id: string;
   type: PrimitiveType | 'icon-text';
   element: any;
