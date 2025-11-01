@@ -19,9 +19,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-        
-      - name: Go to project directory
-        run: cd svg-complex-editor
 
       - name: Install dependencies
         run: npm install
