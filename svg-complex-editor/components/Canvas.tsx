@@ -407,7 +407,7 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, onEl
           id: `wall-${Date.now()}`,
           'data-original-stroke': '#8B4513',
           'data-original-stroke-width': '2'
-        });
+        }).attr('pointer-events', 'all');
 
         newElements.push({
           id: newElement.attr('id'),
@@ -460,7 +460,8 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, onEl
               id: `zone-${Date.now()}`,
               'data-original-stroke': zoneProps.borderColor,
               'data-original-stroke-width': '2'
-            });
+            })
+            .attr('pointer-events', 'all');
         } else {
           // Create ellipse zone (default)
           newElement = (canvasGroup as any).ellipse(80, 60).move(cursorPt.x - 40, cursorPt.y - 30)
@@ -471,7 +472,8 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, onEl
               id: `zone-${Date.now()}`,
               'data-original-stroke': zoneProps.borderColor,
               'data-original-stroke-width': '2'
-            });
+            })
+            .attr('pointer-events', 'all');
         }
 
         newElements.push({
@@ -500,7 +502,8 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, onEl
           .attr({ 
             id: `text-${Date.now()}`,
             'data-original-font': '#000'
-          });
+          })
+          .attr('pointer-events', 'all');
 
         newElements.push({
           id: newElement.attr('id'),
@@ -526,7 +529,8 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, onEl
             id: `icon-${Date.now()}`,
             'data-original-stroke': '#000',
             'data-original-stroke-width': '2'
-          });
+          })
+          .attr('pointer-events', 'all');
 
         // Add a small 'i' inside the circle to represent an icon
         const iconText = (canvasGroup as any).text('i').move(cursorPt.x - 5, cursorPt.y - 9)
@@ -535,7 +539,8 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, onEl
           .attr({ 
             id: `icon-text-${Date.now()}`,
             'data-original-font': '#000'
-          });
+          })
+          .attr('pointer-events', 'all');
 
         // Add both elements to the state
         newElements.push(
@@ -577,7 +582,8 @@ const Canvas: React.FC<CanvasProps> = ({ onSelectionChange, onCanvasChange, onEl
             id: `bg-${Date.now()}`,
             'data-original-stroke': '#ccc',
             'data-original-stroke-width': '1'
-          });
+          })
+          .attr('pointer-events', 'all');
 
         newElements.push({
           id: newElement.attr('id'),
